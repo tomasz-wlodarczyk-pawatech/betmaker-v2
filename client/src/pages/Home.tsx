@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import OddsInput from "@/components/OddsInput";
 import LoadingState from "@/components/LoadingState";
@@ -23,7 +23,9 @@ export default function Home() {
     refetch: refetchEvents
   } = useQuery({
     queryKey: ['/api/events/popular'],
-    enabled: false
+    queryFn: fetchEvents,
+    // Enable the query to run automatically on component mount
+    enabled: true
   });
 
   const handleGenerateBetslip = async () => {
@@ -31,11 +33,7 @@ export default function Home() {
     setNoMatchFound(false);
     setBetslipResult(null);
 
-    // Fetch events if we don't have them yet
-    if (!eventsData) {
-      await refetchEvents();
-    }
-
+    // Only proceed if we have the events data
     if (eventsData) {
       setProcessing(true);
       setProcessingProgress(0);
