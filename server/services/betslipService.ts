@@ -2,12 +2,17 @@ import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
 
 /**
  * Generate a betslip with selections that match the target odds
+ * Optimized for speed while maintaining randomness
  */
 export async function generateBetslip(
   events: Event[],
   targetOdds: number,
   tolerance: number = 0.15
 ): Promise<BetSlipResult | null> {
+  // Set a timeout to prevent long-running calculations
+  const startTime = Date.now();
+  const MAX_EXECUTION_TIME = 500; // 500ms max execution time
+  
   // Extract all hot selections
   const hotSelections = getHotSelections(events);
   
@@ -22,21 +27,36 @@ export async function generateBetslip(
   // Add some randomness to the search by shuffling selections
   const shuffledSelections = [...hotSelections].sort(() => Math.random() - 0.5);
   
-  // Try different sizes of betslips - let's randomize this too
-  // Sometimes start with larger selections, sometimes with smaller ones
-  const randomStartSize = Math.random() < 0.5 ? 1 : Math.floor(Math.random() * 3) + 1;
-  const searchSizes = Array.from({ length: 8 }, (_, i) => i + randomStartSize)
-    .sort(() => Math.random() - 0.5); // Shuffle the sizes
+  // Use fast algorithm directly instead of trying multiple approaches
+  // Randomly choose between different algorithms for variety
+  const useGreedy = Math.random() < 0.7; // Use greedy approach 70% of the time for speed
   
-  // Try to find combinations of different sizes
-  for (const size of searchSizes) {
-    const actualSize = Math.min(size, shuffledSelections.length);
-    const result = findBestCombination(shuffledSelections, targetOdds, minOdds, maxOdds, actualSize);
+  if (useGreedy) {
+    // Use the faster greedy approach
+    const result = findFastCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
     if (result) {
-      // Convert to BetSlipResult format
       return {
         totalOdds: result.totalOdds,
-        selections: result.selections.map(s => ({
+        selections: result.selections.map((s: HotSelection) => ({
+          id: s.id,
+          eventName: s.eventName,
+          eventId: s.eventId,
+          competition: s.competition,
+          marketName: s.marketName,
+          selectionName: s.name,
+          odds: s.odds.toString(),
+          startTime: s.startTime
+        }))
+      };
+    }
+  } else {
+    // Use the optimized combination finder with a random size limit
+    const maxSize = Math.floor(Math.random() * 3) + 2; // 2-4 selections for better performance
+    const result = findOptimizedCombination(shuffledSelections, targetOdds, minOdds, maxOdds, maxSize, startTime, MAX_EXECUTION_TIME);
+    if (result) {
+      return {
+        totalOdds: result.totalOdds,
+        selections: result.selections.map((s: HotSelection) => ({
           id: s.id,
           eventName: s.eventName,
           eventId: s.eventId,
@@ -50,44 +70,22 @@ export async function generateBetslip(
     }
   }
 
-  // If no combination found with normal search, try with greedy approach
-  // Randomly choose between different search strategies for variety
-  if (Math.random() < 0.5) {
-    // Try with more selections using the standard algorithm
-    const result = findBestCombination(shuffledSelections, targetOdds, minOdds, maxOdds, 50);
-    if (result) {
-      return {
-        totalOdds: result.totalOdds,
-        selections: result.selections.map(s => ({
-          id: s.id,
-          eventName: s.eventName,
-          eventId: s.eventId,
-          competition: s.competition,
-          marketName: s.marketName,
-          selectionName: s.name,
-          odds: s.odds.toString(),
-          startTime: s.startTime
-        }))
-      };
-    }
-  } else {
-    // Try with the greedy approach for different results
-    const result = findGreedyCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
-    if (result) {
-      return {
-        totalOdds: result.totalOdds,
-        selections: result.selections.map(s => ({
-          id: s.id,
-          eventName: s.eventName,
-          eventId: s.eventId,
-          competition: s.competition,
-          marketName: s.marketName,
-          selectionName: s.name,
-          odds: s.odds.toString(),
-          startTime: s.startTime
-        }))
-      };
-    }
+  // As a fallback, if we couldn't find anything, use the fastest approach
+  const result = findFastCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
+  if (result) {
+    return {
+      totalOdds: result.totalOdds,
+      selections: result.selections.map((s: HotSelection) => ({
+        id: s.id,
+        eventName: s.eventName,
+        eventId: s.eventId,
+        competition: s.competition,
+        marketName: s.marketName,
+        selectionName: s.name,
+        odds: s.odds.toString(),
+        startTime: s.startTime
+      }))
+    };
   }
 
   return null;
@@ -222,10 +220,183 @@ function findBestCombination(
 }
 
 /**
- * Fallback function using a greedy approach for better performance
- * with large numbers of selections
+ * Optimized combination finder with timeout to prevent long-running calculations
  */
-function findGreedyCombination(
+function findOptimizedCombination(
+  hotSelections: HotSelection[],
+  targetOdds: number,
+  minOdds: number,
+  maxOdds: number,
+  maxSize: number,
+  startTime: number,
+  maxExecutionTime: number
+): { totalOdds: number, selections: HotSelection[] } | null {
+  // Store valid combinations
+  const validCombinations: Array<{
+    totalOdds: number, 
+    selections: HotSelection[], 
+    diff: number
+  }> = [];
+  
+  // Pre-sort selections by ascending odds for more efficient search
+  const sortedSelections = [...hotSelections].sort((a, b) => a.odds - b.odds);
+  
+  // Identify possible starting selections that aren't too large
+  const possibleStartingSelections = sortedSelections.filter(s => s.odds <= maxOdds);
+  
+  // If there are no suitable starting selections, return null
+  if (possibleStartingSelections.length === 0) {
+    return null;
+  }
+  
+  // Randomly select 3 starting points (or fewer if we have less)
+  const startingPoints = [];
+  for (let i = 0; i < Math.min(3, possibleStartingSelections.length); i++) {
+    const randomIndex = Math.floor(Math.random() * possibleStartingSelections.length);
+    startingPoints.push(randomIndex);
+  }
+  
+  // Try each starting point
+  for (const startIndex of startingPoints) {
+    const startSelection = possibleStartingSelections[startIndex];
+    const currentSelections = [startSelection];
+    const usedEventIds = new Set<string>([startSelection.eventId]);
+    const currentOdds = startSelection.odds;
+    
+    // If the starting selection is already within range, add it
+    if (currentOdds >= minOdds && currentOdds <= maxOdds) {
+      validCombinations.push({
+        totalOdds: currentOdds,
+        selections: [...currentSelections],
+        diff: Math.abs(currentOdds - targetOdds)
+      });
+    }
+    
+    // Do a depth-first search with a small depth limit for speed
+    depthFirstSearch(
+      sortedSelections, 
+      currentSelections, 
+      usedEventIds, 
+      currentOdds, 
+      1, // Start at depth 1 since we already have one selection
+      maxSize,
+      targetOdds,
+      minOdds,
+      maxOdds,
+      validCombinations,
+      startTime,
+      maxExecutionTime
+    );
+    
+    // Check if we've exceeded our time limit
+    if (Date.now() - startTime > maxExecutionTime) {
+      break;
+    }
+  }
+  
+  // If we found valid combinations, pick a random one from the best few
+  if (validCombinations.length > 0) {
+    // Sort by how close they are to target odds
+    validCombinations.sort((a, b) => a.diff - b.diff);
+    
+    // Randomly select from top 3 (or fewer if we have less)
+    const randomIndex = Math.floor(Math.random() * Math.min(3, validCombinations.length));
+    const selected = validCombinations[randomIndex];
+    
+    return { totalOdds: selected.totalOdds, selections: selected.selections };
+  }
+  
+  return null;
+}
+
+/**
+ * Depth-first search with time limit and early termination
+ */
+function depthFirstSearch(
+  selections: HotSelection[],
+  currentSelections: HotSelection[],
+  usedEventIds: Set<string>,
+  currentOdds: number,
+  depth: number,
+  maxDepth: number,
+  targetOdds: number,
+  minOdds: number,
+  maxOdds: number,
+  validCombinations: Array<{ totalOdds: number, selections: HotSelection[], diff: number }>,
+  startTime: number,
+  maxExecutionTime: number
+): void {
+  // Check time limit
+  if (Date.now() - startTime > maxExecutionTime) {
+    return;
+  }
+  
+  // If we've reached max depth, stop
+  if (depth >= maxDepth) {
+    return;
+  }
+  
+  // Try adding each possible selection
+  for (const selection of selections) {
+    // Skip if we already have a selection from this event
+    if (usedEventIds.has(selection.eventId)) {
+      continue;
+    }
+    
+    // Calculate new odds
+    const newOdds = currentOdds * selection.odds;
+    
+    // If new odds would exceed max odds by too much, skip
+    if (newOdds > maxOdds * 1.1) {
+      continue;
+    }
+    
+    // Add selection
+    currentSelections.push(selection);
+    usedEventIds.add(selection.eventId);
+    
+    // Check if current combination is valid
+    if (newOdds >= minOdds && newOdds <= maxOdds) {
+      const diff = Math.abs(newOdds - targetOdds);
+      validCombinations.push({
+        totalOdds: newOdds,
+        selections: [...currentSelections],
+        diff: diff
+      });
+      
+      // Keep only the best 10 combinations for memory efficiency
+      if (validCombinations.length > 10) {
+        validCombinations.sort((a, b) => a.diff - b.diff);
+        validCombinations.length = 10;
+      }
+    }
+    
+    // Continue search
+    depthFirstSearch(
+      selections,
+      currentSelections,
+      usedEventIds,
+      newOdds,
+      depth + 1,
+      maxDepth,
+      targetOdds,
+      minOdds,
+      maxOdds,
+      validCombinations,
+      startTime,
+      maxExecutionTime
+    );
+    
+    // Backtrack
+    currentSelections.pop();
+    usedEventIds.delete(selection.eventId);
+  }
+}
+
+/**
+ * Fast combination finder using a greedy approach for better performance
+ */
+function findFastCombination(
   hotSelections: HotSelection[],
   targetOdds: number,
   minOdds: number,
