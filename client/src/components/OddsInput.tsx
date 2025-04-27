@@ -1,5 +1,7 @@
 import { Volleyball } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { useState, useEffect } from "react";
 
 interface OddsInputProps {
   targetOdds: number;
@@ -14,7 +16,22 @@ export default function OddsInput({
   onGenerate,
   disabled = false 
 }: OddsInputProps) {
+  // Local state to track slider value for smoother UI
+  const [sliderValue, setSliderValue] = useState<number[]>([targetOdds]);
   
+  // Update local state when targetOdds changes externally
+  useEffect(() => {
+    setSliderValue([targetOdds]);
+  }, [targetOdds]);
+  
+  // Handle slider change
+  const handleSliderChange = (value: number[]) => {
+    const newValue = value[0];
+    setSliderValue(value);
+    setTargetOdds(newValue);
+  };
+  
+  // Handle manual input change as backup
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = parseFloat(e.target.value);
     if (isNaN(value)) value = 10;
@@ -23,37 +40,61 @@ export default function OddsInput({
     setTargetOdds(value);
   };
 
+  // Display common odds markers
+  const commonOddsMarkers = [
+    { value: 2, label: "2x" },
+    { value: 10, label: "10x" },
+    { value: 100, label: "100x" },
+    { value: 500, label: "500x" },
+    { value: 1000, label: "1000x" }
+  ];
+
   return (
     <Card className="mb-6">
       <CardContent className="pt-5">
         <h2 className="text-lg font-medium mb-4">Set Your Target Odds</h2>
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <div className="flex-grow">
-            <label htmlFor="totalOdds" className="block text-sm font-medium mb-1">
-              Desired Total Odds
-            </label>
-            <div className="flex">
-              <input 
-                type="number" 
-                id="totalOdds" 
-                className="w-full rounded-l-md border border-neutral-medium p-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                value={targetOdds} 
-                onChange={handleInputChange}
-                min="2" 
-                max="1000"
-                disabled={disabled}
-              />
-              <span className="bg-neutral-medium px-3 flex items-center rounded-r-md text-neutral-dark font-medium">x</span>
+        
+        <div className="space-y-6">
+          {/* Odds input field and value display */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="totalOdds" className="text-sm font-medium">
+                Desired Total Odds
+              </label>
+              <div className="flex items-center bg-neutral-light rounded-md px-3 py-1">
+                <span className="font-medium text-lg">{targetOdds.toFixed(1)}</span>
+                <span className="text-neutral-dark ml-1">x</span>
+              </div>
             </div>
-            <div className="text-xs text-neutral-dark mt-1">Min: 2, Max: 1000</div>
+            
+            {/* Slider */}
+            <Slider
+              id="totalOdds-slider"
+              defaultValue={[targetOdds]}
+              value={sliderValue}
+              min={2}
+              max={1000}
+              step={0.5}
+              onValueChange={handleSliderChange}
+              disabled={disabled}
+              className="py-4"
+            />
+            
+            {/* Min/Max markers */}
+            <div className="flex justify-between text-xs text-neutral-dark">
+              <span>Min: 2</span>
+              <span>Max: 1000</span>
+            </div>
           </div>
-          <div className="sm:self-end">
+          
+          {/* Generate button aligned to the right */}
+          <div className="flex justify-end">
             <button 
               onClick={onGenerate}
               disabled={disabled}
-              className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-white font-medium py-2 px-6 rounded-md transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-accent hover:bg-accent/90 text-white font-medium py-2.5 px-6 rounded-md transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Volleyball className="h-4 w-4 mr-1" />
+              <Volleyball className="h-4 w-4 mr-2" />
               Generate Betslip
             </button>
           </div>
