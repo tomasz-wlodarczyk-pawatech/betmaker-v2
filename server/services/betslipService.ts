@@ -45,7 +45,8 @@ export async function generateBetslip(
           marketName: s.marketName,
           selectionName: s.name,
           odds: s.odds.toString(),
-          startTime: s.startTime
+          startTime: s.startTime,
+          isHot: true // Mark all selections as hot
         }))
       };
     }
@@ -64,7 +65,8 @@ export async function generateBetslip(
           marketName: s.marketName,
           selectionName: s.name,
           odds: s.odds.toString(),
-          startTime: s.startTime
+          startTime: s.startTime,
+          isHot: true // Mark all selections as hot
         }))
       };
     }
@@ -83,7 +85,8 @@ export async function generateBetslip(
         marketName: s.marketName,
         selectionName: s.name,
         odds: s.odds.toString(),
-        startTime: s.startTime
+        startTime: s.startTime,
+        isHot: true // Mark all selections as hot
       }))
     };
   }

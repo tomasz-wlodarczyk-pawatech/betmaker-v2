@@ -30,6 +30,7 @@ export interface BetSlipSelection {
   selectionName: string;
   odds: string;
   startTime: string;
+  isHot?: boolean; // Flag to indicate this is a hot selection
 }
 
 // Final betslip result
