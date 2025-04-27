@@ -19,10 +19,19 @@ export async function generateBetslip(
   const minOdds = targetOdds * (1 - tolerance);
   const maxOdds = targetOdds * (1 + tolerance);
   
-  // Find a combination that matches the target odds
-  // Try to minimize the number of selections first, starting with 1 and going up to 10
-  for (let size = 1; size <= Math.min(10, hotSelections.length); size++) {
-    const result = findBestCombination(hotSelections, targetOdds, minOdds, maxOdds, size);
+  // Add some randomness to the search by shuffling selections
+  const shuffledSelections = [...hotSelections].sort(() => Math.random() - 0.5);
+  
+  // Try different sizes of betslips - let's randomize this too
+  // Sometimes start with larger selections, sometimes with smaller ones
+  const randomStartSize = Math.random() < 0.5 ? 1 : Math.floor(Math.random() * 3) + 1;
+  const searchSizes = Array.from({ length: 8 }, (_, i) => i + randomStartSize)
+    .sort(() => Math.random() - 0.5); // Shuffle the sizes
+  
+  // Try to find combinations of different sizes
+  for (const size of searchSizes) {
+    const actualSize = Math.min(size, shuffledSelections.length);
+    const result = findBestCombination(shuffledSelections, targetOdds, minOdds, maxOdds, actualSize);
     if (result) {
       // Convert to BetSlipResult format
       return {
@@ -41,22 +50,44 @@ export async function generateBetslip(
     }
   }
 
-  // If no combination found, try with more selections (up to 50)
-  const result = findBestCombination(hotSelections, targetOdds, minOdds, maxOdds, 50);
-  if (result) {
-    return {
-      totalOdds: result.totalOdds,
-      selections: result.selections.map(s => ({
-        id: s.id,
-        eventName: s.eventName,
-        eventId: s.eventId,
-        competition: s.competition,
-        marketName: s.marketName,
-        selectionName: s.name,
-        odds: s.odds.toString(),
-        startTime: s.startTime
-      }))
-    };
+  // If no combination found with normal search, try with greedy approach
+  // Randomly choose between different search strategies for variety
+  if (Math.random() < 0.5) {
+    // Try with more selections using the standard algorithm
+    const result = findBestCombination(shuffledSelections, targetOdds, minOdds, maxOdds, 50);
+    if (result) {
+      return {
+        totalOdds: result.totalOdds,
+        selections: result.selections.map(s => ({
+          id: s.id,
+          eventName: s.eventName,
+          eventId: s.eventId,
+          competition: s.competition,
+          marketName: s.marketName,
+          selectionName: s.name,
+          odds: s.odds.toString(),
+          startTime: s.startTime
+        }))
+      };
+    }
+  } else {
+    // Try with the greedy approach for different results
+    const result = findGreedyCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
+    if (result) {
+      return {
+        totalOdds: result.totalOdds,
+        selections: result.selections.map(s => ({
+          id: s.id,
+          eventName: s.eventName,
+          eventId: s.eventId,
+          competition: s.competition,
+          marketName: s.marketName,
+          selectionName: s.name,
+          odds: s.odds.toString(),
+          startTime: s.startTime
+        }))
+      };
+    }
   }
 
   return null;
@@ -100,11 +131,15 @@ function findBestCombination(
   maxOdds: number,
   maxSize: number
 ): { totalOdds: number, selections: HotSelection[] } | null {
-  let bestCombination: HotSelection[] | null = null;
-  let bestDiff = Infinity;
+  // Store multiple valid combinations instead of just the best one
+  const validCombinations: Array<{
+    totalOdds: number, 
+    selections: HotSelection[], 
+    diff: number
+  }> = [];
   
-  // Sort selections by odds (ascending) to optimize search
-  hotSelections.sort((a, b) => a.odds - b.odds);
+  // Shuffle the selections to ensure randomness
+  const shuffledSelections = [...hotSelections].sort(() => Math.random() - 0.5);
   
   /**
    * Recursive function to find all combinations
@@ -118,9 +153,16 @@ function findBestCombination(
     // Check if current combination matches criteria
     if (currentOdds >= minOdds && currentOdds <= maxOdds) {
       const diff = Math.abs(currentOdds - targetOdds);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestCombination = [...currentSelections];
+      validCombinations.push({
+        totalOdds: currentOdds,
+        selections: [...currentSelections],
+        diff: diff
+      });
+      
+      // If we have too many combinations, keep only the top 20
+      if (validCombinations.length > 20) {
+        validCombinations.sort((a, b) => a.diff - b.diff);
+        validCombinations.length = 20;
       }
     }
     
@@ -130,8 +172,8 @@ function findBestCombination(
     }
     
     // Try adding more selections
-    for (let i = startIndex; i < hotSelections.length; i++) {
-      const selection = hotSelections[i];
+    for (let i = startIndex; i < shuffledSelections.length; i++) {
+      const selection = shuffledSelections[i];
       
       // Skip if we already have a selection from this event
       if (usedEventIds.has(selection.eventId)) {
@@ -159,9 +201,21 @@ function findBestCombination(
   // Start the search
   findCombinations(0, [], 1, new Set<string>());
   
-  if (bestCombination) {
-    const totalOdds = bestCombination.reduce((total, selection) => total * selection.odds, 1);
-    return { totalOdds, selections: bestCombination };
+  // If we found valid combinations, randomly select one from the top performers
+  if (validCombinations.length > 0) {
+    // Sort by how close they are to target odds
+    validCombinations.sort((a, b) => a.diff - b.diff);
+    
+    // Randomly select one of the top combinations
+    // Get a random index from the top 50% of results, with minimum of 1 and maximum of 5
+    const maxRandomIndex = Math.min(
+      Math.max(1, Math.floor(validCombinations.length / 2)), 
+      Math.min(5, validCombinations.length - 1)
+    );
+    const randomIndex = Math.floor(Math.random() * (maxRandomIndex + 1));
+    
+    const selected = validCombinations[randomIndex];
+    return { totalOdds: selected.totalOdds, selections: selected.selections };
   }
   
   return null;
@@ -177,39 +231,78 @@ function findGreedyCombination(
   minOdds: number,
   maxOdds: number
 ): { totalOdds: number, selections: HotSelection[] } | null {
-  // Clone and sort selections by how close they are to 1.0 (ascending)
-  const sortedSelections = [...hotSelections].sort((a, b) => 
-    Math.abs(a.odds - 1) - Math.abs(b.odds - 1)
-  );
+  // Clone and shuffle selections
+  const shuffledSelections = [...hotSelections].sort(() => Math.random() - 0.5);
   
-  let currentOdds = 1;
-  const selectedSelections: HotSelection[] = [];
-  const usedEventIds = new Set<string>();
+  // Try multiple starting points to get different results each time
+  const startingPoints = [];
+  for (let i = 0; i < Math.min(5, shuffledSelections.length); i++) {
+    const randomIndex = Math.floor(Math.random() * shuffledSelections.length);
+    startingPoints.push(randomIndex);
+  }
   
-  // Try to build a combination that gets close to the target odds
-  for (const selection of sortedSelections) {
-    // Skip if we already used this event
-    if (usedEventIds.has(selection.eventId)) {
-      continue;
+  // Try building from each starting point and collect results
+  const possibleCombinations = [];
+  
+  for (const startIndex of startingPoints) {
+    let currentOdds = 1;
+    const selectedSelections: HotSelection[] = [];
+    const usedEventIds = new Set<string>();
+    
+    // Add the starting selection
+    const startSelection = shuffledSelections[startIndex];
+    selectedSelections.push(startSelection);
+    usedEventIds.add(startSelection.eventId);
+    currentOdds *= startSelection.odds;
+    
+    // Try to build a combination that gets close to the target odds
+    for (const selection of shuffledSelections) {
+      // Skip if we already used this event or it's the starting selection
+      if (usedEventIds.has(selection.eventId)) {
+        continue;
+      }
+      
+      // Check if adding this selection would improve our odds
+      const newOdds = currentOdds * selection.odds;
+      if (newOdds <= maxOdds * 1.1 && Math.abs(newOdds - targetOdds) < Math.abs(currentOdds - targetOdds)) {
+        selectedSelections.push(selection);
+        usedEventIds.add(selection.eventId);
+        currentOdds = newOdds;
+        
+        // If we're within range, add to possible combinations
+        if (currentOdds >= minOdds && currentOdds <= maxOdds) {
+          possibleCombinations.push({
+            totalOdds: currentOdds,
+            selections: [...selectedSelections],
+            diff: Math.abs(currentOdds - targetOdds)
+          });
+        }
+      }
     }
     
-    // Check if adding this selection would improve our odds
-    const newOdds = currentOdds * selection.odds;
-    if (newOdds <= maxOdds && Math.abs(newOdds - targetOdds) < Math.abs(currentOdds - targetOdds)) {
-      selectedSelections.push(selection);
-      usedEventIds.add(selection.eventId);
-      currentOdds = newOdds;
-      
-      // If we're within range, we're done
-      if (currentOdds >= minOdds && currentOdds <= maxOdds) {
-        return { totalOdds: currentOdds, selections: selectedSelections };
-      }
+    // Even if not in range, add to possible combinations if we have selections
+    if (selectedSelections.length > 1) {
+      possibleCombinations.push({
+        totalOdds: currentOdds,
+        selections: [...selectedSelections],
+        diff: Math.abs(currentOdds - targetOdds)
+      });
     }
   }
   
-  // If we completed the loop but didn't find a match within range
-  if (selectedSelections.length > 0) {
-    return { totalOdds: currentOdds, selections: selectedSelections };
+  // If we found any combinations, pick a random one from the best few
+  if (possibleCombinations.length > 0) {
+    // Sort by how close they are to target odds
+    possibleCombinations.sort((a, b) => a.diff - b.diff);
+    
+    // Take a random one from the top 3 (or fewer if we have less)
+    const randomIndex = Math.floor(Math.random() * Math.min(3, possibleCombinations.length));
+    const selected = possibleCombinations[randomIndex];
+    
+    return { 
+      totalOdds: selected.totalOdds, 
+      selections: selected.selections 
+    };
   }
   
   return null;
