@@ -95,7 +95,7 @@ export default function OddsInput({
               className="bg-secondary hover:bg-secondary/90 text-white font-medium py-2.5 px-6 rounded-md transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Volleyball className="h-4 w-4 mr-2" />
-              Generate Betslip
+              Generate
             </button>
           </div>
         </div>

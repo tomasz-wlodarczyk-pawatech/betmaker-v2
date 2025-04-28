@@ -1,8 +1,10 @@
-import { RefreshCw, Save } from "lucide-react";
+import { ExternalLink, Loader2, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { generateBookingCode } from "@/lib/api";
 
 interface BetslipResultsProps {
   result: BetSlipResult;
@@ -12,16 +14,44 @@ interface BetslipResultsProps {
 
 export default function BetslipResults({ 
   result, 
-  targetOdds, 
+  targetOdds,
   onRegenerate 
 }: BetslipResultsProps) {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
-  const handleSaveBetslip = () => {
-    toast({
-      title: "Betslip saved!",
-      description: "Your betslip has been saved successfully.",
-    });
+  const handleLoadBetslip = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Extract selection IDs from the betslip result
+      const selectionIds = result.selections.map(selection => selection.id);
+      
+      // Generate booking code from BetPawa API
+      const bookingData = await generateBookingCode(selectionIds);
+      
+      if (bookingData && bookingData.code) {
+        // Construct the URL with booking code
+        const betPawaUrl = `https://www.betpawa.com.gh/?bookingCode=${bookingData.code}`;
+        
+        // Open in new window
+        window.open(betPawaUrl, '_blank');
+        
+        toast({
+          title: "Betslip loaded!",
+          description: `Booking code: ${bookingData.code}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading betslip:', error);
+      toast({
+        title: "Error loading betslip",
+        description: "There was a problem loading your betslip. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,6 +82,21 @@ export default function BetslipResults({
           </div>
         </div>
 
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={handleLoadBetslip}
+            disabled={isLoading}
+            className="flex items-center justify-center bg-secondary text-white rounded-md px-4 py-2 hover:bg-secondary/90 transition-colors disabled:opacity-70"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <ExternalLink className="h-4 w-4 mr-1" />
+            )}
+            Load Betslip
+          </button>
+        </div>
+
         <div className="border-t border-neutral-medium pt-4 mb-4">
           <h3 className="font-medium mb-3">Betslip Selections</h3>
           
@@ -63,23 +108,6 @@ export default function BetslipResults({
               />
             ))}
           </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row justify-between gap-3 pt-3 border-t border-neutral-medium">
-          <button 
-            onClick={onRegenerate}
-            className="flex items-center justify-center text-primary border border-primary rounded-md px-4 py-2 hover:bg-primary/5 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Generate New Betslip
-          </button>
-          <button 
-            onClick={handleSaveBetslip}
-            className="flex items-center justify-center bg-secondary text-white rounded-md px-4 py-2 hover:bg-secondary/90 transition-colors"
-          >
-            <Save className="h-4 w-4 mr-1" />
-            Save Betslip
-          </button>
         </div>
       </CardContent>
     </Card>
