@@ -12,7 +12,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-primary text-white p-4 shadow-md">
+      <header className="bg-secondary text-white p-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold">BetSlip Generator</h1>
           <button 
