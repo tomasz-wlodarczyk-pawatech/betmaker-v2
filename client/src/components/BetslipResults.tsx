@@ -70,11 +70,11 @@ export default function BetslipResults({
         <div className="flex flex-col md:flex-row gap-4 mb-4">
           <div className="bg-neutral-light rounded-md p-3 flex-1">
             <p className="text-sm text-neutral-dark">Target Odds</p>
-            <p className="text-xl font-bold">{targetOdds.toFixed(2)}</p>
+            <p className="text-xl font-bold">{Math.round(targetOdds)}</p>
           </div>
           <div className="bg-neutral-light rounded-md p-3 flex-1">
             <p className="text-sm text-neutral-dark">Actual Odds</p>
-            <p className="text-xl font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
+            <p className="text-xl font-bold text-secondary">{Math.round(result.totalOdds)}</p>
           </div>
           <div className="bg-neutral-light rounded-md p-3 flex-1">
             <p className="text-sm text-neutral-dark">Selections</p>

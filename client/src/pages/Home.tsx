@@ -11,9 +11,8 @@ import { BetSlipResult } from "@/types";
 
 // Helper function to generate random odds between min and max values
 function getRandomOdds(min: number, max: number): number {
-  // Get a random decimal number between min and max, rounded to the nearest 0.5
-  const randomValue = Math.random() * (max - min) + min;
-  return Math.round(randomValue * 2) / 2;
+  // Get a random whole number between min and max
+  return Math.round(Math.random() * (max - min) + min);
 }
 
 export default function Home() {
@@ -86,8 +85,8 @@ export default function Home() {
   };
 
   const handleSuggestedOdds = (suggestedOdds: number) => {
-    // Round to nearest 0.5
-    const roundedOdds = Math.round(suggestedOdds * 2) / 2;
+    // Round to whole number
+    const roundedOdds = Math.round(suggestedOdds);
     setTargetOdds(roundedOdds);
     setTimeout(() => handleGenerateBetslip(), 100);
   };

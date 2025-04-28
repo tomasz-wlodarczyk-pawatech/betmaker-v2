@@ -27,8 +27,8 @@ export default function OddsInput({
   // Handle slider change
   const handleSliderChange = (value: number[]) => {
     const newValue = value[0];
-    // The slider step is already set to 0.5, but ensure it's rounded just in case
-    const roundedValue = Math.round(newValue * 2) / 2;
+    // The slider step is already set to 1, but ensure it's rounded to whole number
+    const roundedValue = Math.round(newValue);
     setSliderValue([roundedValue]);
     setTargetOdds(roundedValue);
   };
@@ -39,8 +39,8 @@ export default function OddsInput({
     if (isNaN(value)) value = 10;
     if (value < 2) value = 2;
     if (value > 1000) value = 1000;
-    // Round to nearest 0.5
-    value = Math.round(value * 2) / 2;
+    // Round to whole number
+    value = Math.round(value);
     setTargetOdds(value);
   };
 
@@ -66,7 +66,7 @@ export default function OddsInput({
                 Desired Total Odds
               </label>
               <div className="flex items-center bg-neutral-light rounded-md px-3 py-1">
-                <span className="font-medium text-lg">{targetOdds.toFixed(2)}</span>
+                <span className="font-medium text-lg">{Math.round(targetOdds)}</span>
                 <span className="text-neutral-dark ml-1">x</span>
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function OddsInput({
               value={sliderValue}
               min={2}
               max={1000}
-              step={0.5}
+              step={1}
               onValueChange={handleSliderChange}
               disabled={disabled}
               className="py-4"
