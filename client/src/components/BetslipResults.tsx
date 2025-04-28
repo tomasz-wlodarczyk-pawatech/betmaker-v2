@@ -74,7 +74,7 @@ export default function BetslipResults({
           </div>
           <div className="bg-neutral-light rounded-md p-3 flex-1">
             <p className="text-sm text-neutral-dark">Actual Odds</p>
-            <p className="text-xl font-bold text-secondary">{Math.round(result.totalOdds)}</p>
+            <p className="text-xl font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
           </div>
           <div className="bg-neutral-light rounded-md p-3 flex-1">
             <p className="text-sm text-neutral-dark">Selections</p>
