@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import OddsInput from "@/components/OddsInput";
-import LoadingState from "@/components/LoadingState";
 import ProcessingState from "@/components/ProcessingState";
 import ErrorState from "@/components/ErrorState";
 import NoMatchState from "@/components/NoMatchState";
 import BetslipResults from "@/components/BetslipResults";
-import { fetchEvents, generateBetslip } from "@/lib/api";
+import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 
 // Helper function to generate random odds between min and max values
@@ -22,34 +20,17 @@ export default function Home() {
   const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [betslipResult, setBetslipResult] = useState<BetSlipResult | null>(null);
   const [noMatchFound, setNoMatchFound] = useState<boolean>(false);
-
-  const {
-    data: eventsData,
-    isLoading: isLoadingEvents,
-    error: eventsError,
-    refetch: refetchEvents
-  } = useQuery({
-    queryKey: ['/api/events/popular'],
-    queryFn: fetchEvents,
-    // Disable the query from running automatically on component mount
-    enabled: false
-  });
+  const [error, setError] = useState<boolean>(false);
   
-  // We've removed the automatic betslip generation on load
-
   const handleGenerateBetslip = async () => {
     // Reset states
     setNoMatchFound(false);
     setBetslipResult(null);
+    setError(false);
     
     // Start processing
     setProcessing(true);
     setProcessingProgress(0);
-    
-    // Fetch events data if not already loaded
-    if (!eventsData) {
-      await refetchEvents();
-    }
     
     // Simulate processing progress updates
     const progressInterval = setInterval(() => {
@@ -79,12 +60,13 @@ export default function Home() {
     } catch (error) {
       clearInterval(progressInterval);
       setProcessing(false);
+      setError(true);
       console.error("Error generating betslip:", error);
     }
   };
 
   const handleRetry = () => {
-    refetchEvents();
+    handleGenerateBetslip();
   };
 
   const handleSuggestedOdds = (suggestedOdds: number) => {
@@ -104,10 +86,8 @@ export default function Home() {
         targetOdds={targetOdds} 
         setTargetOdds={setTargetOdds} 
         onGenerate={handleGenerateBetslip}
-        disabled={isLoadingEvents || processing}
+        disabled={processing}
       />
-
-      {isLoadingEvents && <LoadingState message="Fetching available events..." />}
       
       {processing && (
         <ProcessingState 
@@ -116,9 +96,9 @@ export default function Home() {
         />
       )}
 
-      {eventsError && (
+      {error && (
         <ErrorState 
-          message="Unable to connect to the events API. Please try again later."
+          message="Unable to generate betslip. Please try again later."
           onRetry={handleRetry}
         />
       )}
