@@ -13,29 +13,30 @@
   --card-foreground: 20 14.3% 4.1%;
   --border: 20 5.9% 90%;
   --input: 20 5.9% 90%;
-  --primary: 238 69% 45%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 122 39% 49%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 33 100% 50%;
-  --accent-foreground: 24 9.8% 10%;
+  /* BetPawa lime green color */
+  --primary: 84 100% 45%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 220 14% 20%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 84 100% 45%;
+  --accent-foreground: 0 0% 0%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
+  --ring: 84 100% 45%;
   --radius: 0.5rem;
-  --chart-1: 238 69% 45%;
-  --chart-2: 122 39% 49%;
+  --chart-1: 84 100% 45%;
+  --chart-2: 220 14% 20%;
   --chart-3: 33 100% 50%;
   --chart-4: 184 100% 45%;
   --chart-5: 300 70% 50%;
-  --sidebar-background: 238 69% 45%;
+  --sidebar-background: 220 14% 20%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 0 0% 100%;
-  --sidebar-primary-foreground: 238 69% 45%;
-  --sidebar-accent: 33 100% 50%;
+  --sidebar-primary: 84 100% 45%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 84 100% 45%;
   --sidebar-accent-foreground: 0 0% 0%;
   --sidebar-border: 240 3.7% 35.9%;
-  --sidebar-ring: 240 4.9% 83.9%;
+  --sidebar-ring: 84 100% 45%;
 }
 
 .dark {
@@ -49,15 +50,16 @@
   --card-foreground: 0 0% 98%;
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --primary: 238 69% 45%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 122 39% 49%;
+  /* BetPawa lime green color for dark mode too */
+  --primary: 84 100% 45%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 220 14% 20%;
   --secondary-foreground: 0 0% 98%;
-  --accent: 33 100% 50%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 84 100% 45%;
+  --accent-foreground: 0 0% 0%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+  --ring: 84 100% 45%;
   --radius: 0.5rem;
 }
 
