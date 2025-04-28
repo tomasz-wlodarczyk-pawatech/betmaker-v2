@@ -62,7 +62,7 @@ export default function OddsInput({
                 Desired Total Odds
               </label>
               <div className="flex items-center bg-neutral-light rounded-md px-3 py-1">
-                <span className="font-medium text-lg">{targetOdds.toFixed(1)}</span>
+                <span className="font-medium text-lg">{targetOdds.toFixed(2)}</span>
                 <span className="text-neutral-dark ml-1">x</span>
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function OddsInput({
               value={sliderValue}
               min={2}
               max={1000}
-              step={0.5}
+              step={0.01}
               onValueChange={handleSliderChange}
               disabled={disabled}
               className="py-4"
