@@ -31,8 +31,8 @@ export default function Home() {
   } = useQuery({
     queryKey: ['/api/events/popular'],
     queryFn: fetchEvents,
-    // Enable the query to run automatically on component mount
-    enabled: true
+    // Disable the query from running automatically on component mount
+    enabled: false
   });
   
   // We've removed the automatic betslip generation on load
@@ -41,42 +41,45 @@ export default function Home() {
     // Reset states
     setNoMatchFound(false);
     setBetslipResult(null);
+    
+    // Start processing
+    setProcessing(true);
+    setProcessingProgress(0);
+    
+    // Fetch events data if not already loaded
+    if (!eventsData) {
+      await refetchEvents();
+    }
+    
+    // Simulate processing progress updates
+    const progressInterval = setInterval(() => {
+      setProcessingProgress(prev => {
+        const newProgress = Math.min(prev + 5, 95);
+        return newProgress;
+      });
+    }, 100);
 
-    // Only proceed if we have the events data
-    if (eventsData) {
-      setProcessing(true);
-      setProcessingProgress(0);
-
-      // Simulate processing progress updates
-      const progressInterval = setInterval(() => {
-        setProcessingProgress(prev => {
-          const newProgress = Math.min(prev + 5, 95);
-          return newProgress;
-        });
-      }, 100);
-
-      try {
-        const result = await generateBetslip(targetOdds);
-        clearInterval(progressInterval);
-        
-        if (result) {
-          setProcessingProgress(100);
-          setTimeout(() => {
-            setProcessing(false);
-            setBetslipResult(result);
-          }, 300);
-        } else {
-          setProcessingProgress(100);
-          setTimeout(() => {
-            setProcessing(false);
-            setNoMatchFound(true);
-          }, 300);
-        }
-      } catch (error) {
-        clearInterval(progressInterval);
-        setProcessing(false);
-        console.error("Error generating betslip:", error);
+    try {
+      const result = await generateBetslip(targetOdds);
+      clearInterval(progressInterval);
+      
+      if (result) {
+        setProcessingProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+          setBetslipResult(result);
+        }, 300);
+      } else {
+        setProcessingProgress(100);
+        setTimeout(() => {
+          setProcessing(false);
+          setNoMatchFound(true);
+        }, 300);
       }
+    } catch (error) {
+      clearInterval(progressInterval);
+      setProcessing(false);
+      console.error("Error generating betslip:", error);
     }
   };
 
