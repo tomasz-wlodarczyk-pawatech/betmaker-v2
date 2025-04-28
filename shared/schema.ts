@@ -53,4 +53,9 @@ export const generateBetslipSchema = z.object({
   targetOdds: z.number().min(2).max(1000),
 });
 
+export const generateBookingCodeSchema = z.object({
+  selectionIds: z.array(z.string()),
+});
+
 export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
+export type GenerateBookingCodeRequest = z.infer<typeof generateBookingCodeSchema>;

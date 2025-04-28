@@ -26,21 +26,9 @@ export async function generateBetslip(targetOdds: number): Promise<BetSlipResult
 
 export async function generateBookingCode(selectionIds: string[]): Promise<{ code: string }> {
   try {
-    const response = await fetch('https://www.betpawa.com.gh/api/sportsbook/v2/booking-number', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-pawa-brand': 'betpawa-ghana',
-        'x-pawa-language': 'en'
-      },
-      body: JSON.stringify({
-        selections: selectionIds
-      })
+    const response = await apiRequest("POST", `${API_BASE}/booking/generate`, {
+      selectionIds
     });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to generate booking code: ${response.statusText}`);
-    }
     
     return await response.json();
   } catch (error) {
