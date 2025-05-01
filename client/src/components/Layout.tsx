@@ -9,8 +9,8 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="p-4 flex justify-center items-center bg-secondary text-white border-b">
-        <img src="/assets/bplabslogo.png" alt="BP Labs Logo" className="h-10" />
+      <header className="h-[40px] flex justify-center items-center bg-secondary text-white border-b">
+        <img src="/assets/bplabslogo.png" alt="BP Labs Logo" className="h-[30px]" />
       </header>
 
       <main className="flex-grow container mx-auto p-4 md:p-6 max-w-5xl">
