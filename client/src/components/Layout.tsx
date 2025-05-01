@@ -1,13 +1,18 @@
 import { ReactNode } from "react";
+import { Toaster } from "@/components/ui/toaster";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="p-4 flex justify-center items-center bg-background border-b">
+        <img src="/bplabslogo.png" alt="BP Labs Logo" className="h-10" />
+      </header>
+
       <main className="flex-grow container mx-auto p-4 md:p-6 max-w-5xl">
         {children}
       </main>
@@ -17,6 +22,8 @@ export default function Layout({ children }: LayoutProps) {
           <p>© {new Date().getFullYear()} BetSlip Generator | All betting selections and odds are for demonstration purposes only.</p>
         </div>
       </footer>
+      
+      <Toaster />
     </div>
   );
 }
