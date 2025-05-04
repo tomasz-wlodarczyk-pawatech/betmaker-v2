@@ -3,9 +3,9 @@ import { BetSlipResult } from "@/types";
 
 const API_BASE = "/api";
 
-export async function generateBetslip(targetOdds: number): Promise<BetSlipResult | null> {
+export async function generateBetslip(country: string, targetOdds: number): Promise<BetSlipResult | null> {
   try {
-    const response = await apiRequest("POST", `${API_BASE}/betslip/generate`, {
+    const response = await apiRequest("POST", `${API_BASE}/${country}/betslip/generate`, {
       targetOdds
     });
     

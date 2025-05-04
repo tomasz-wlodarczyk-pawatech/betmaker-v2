@@ -1,15 +1,44 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import axios from "axios";
 import { generateBetslipSchema, generateBookingCodeSchema } from "@shared/schema";
 import { generateBetslip } from "./services/betslipService";
 
+// List of supported country codes
+const SUPPORTED_COUNTRIES = [
+  'ao', 'bj', 'bw', 'cd', 'cf', 'cg', 'ci', 'cm', 'ga', 'gh', 
+  'ke', 'lr', 'ls', 'mw', 'mz', 'ng', 'rw', 'sl', 'sn', 'tz', 'ug', 'zm', 'zw'
+];
+
+// Get country code from request or default to 'gh'
+function getCountryCode(req: Request): string | null {
+  const countryCode = req.params.country?.toLowerCase();
+  
+  if (!countryCode) {
+    return null;
+  }
+
+  if (!SUPPORTED_COUNTRIES.includes(countryCode)) {
+    return null;
+  }
+
+  return countryCode;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API endpoint to proxy the events data
-  app.get("/api/events/popular", async (req, res) => {
+  // Country-specific API endpoint to proxy the events data
+  app.get("/api/:country/events/popular", async (req, res) => {
     try {
-      const response = await axios.get("https://list-events-pawa.replit.app/events/popular");
+      const countryCode = getCountryCode(req);
+      
+      if (!countryCode) {
+        return res.status(400).json({
+          message: "Invalid country code. Supported countries: " + SUPPORTED_COUNTRIES.join(', ')
+        });
+      }
+
+      const response = await axios.get(`https://pawa-api.replit.app/${countryCode}/events/popular`);
       res.json(response.data);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -17,13 +46,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // API endpoint to generate a betslip
-  app.post("/api/betslip/generate", async (req, res) => {
+  // Country-specific API endpoint to generate a betslip
+  app.post("/api/:country/betslip/generate", async (req, res) => {
     try {
+      const countryCode = getCountryCode(req);
+      
+      if (!countryCode) {
+        return res.status(400).json({
+          message: "Invalid country code. Supported countries: " + SUPPORTED_COUNTRIES.join(', ')
+        });
+      }
+
       const { targetOdds } = generateBetslipSchema.parse(req.body);
 
       // Fetch events data
-      const response = await axios.get("https://list-events-pawa.replit.app/events/popular");
+      const response = await axios.get(`https://pawa-api.replit.app/${countryCode}/events/popular`);
       const events = response.data;
 
       // Generate betslip

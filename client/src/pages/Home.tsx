@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import OddsInput from "@/components/OddsInput";
 import ProcessingState from "@/components/ProcessingState";
 import ErrorState from "@/components/ErrorState";
@@ -7,13 +7,28 @@ import BetslipResults from "@/components/BetslipResults";
 import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 
+// List of supported country codes (duplicated from App.tsx for type safety)
+const SUPPORTED_COUNTRIES = [
+  'ao', 'bj', 'bw', 'cd', 'cf', 'cg', 'ci', 'cm', 'ga', 'gh', 
+  'ke', 'lr', 'ls', 'mw', 'mz', 'ng', 'rw', 'sl', 'sn', 'tz', 'ug', 'zm', 'zw'
+] as const;
+
+type CountryCode = typeof SUPPORTED_COUNTRIES[number];
+
 // Helper function to generate random odds between min and max values
 function getRandomOdds(min: number, max: number): number {
   // Get a random whole number between min and max
   return Math.round(Math.random() * (max - min) + min);
 }
 
-export default function Home() {
+interface HomeProps {
+  country: string;
+}
+
+export default function Home({ country }: HomeProps) {
+  // Validate country code
+  const countryCode = country.toLowerCase() as CountryCode;
+  
   // Initialize with random odds between 5 and 20
   const [targetOdds, setTargetOdds] = useState<number>(() => getRandomOdds(5, 20));
   const [processing, setProcessing] = useState<boolean>(false);
@@ -21,8 +36,23 @@ export default function Home() {
   const [betslipResult, setBetslipResult] = useState<BetSlipResult | null>(null);
   const [noMatchFound, setNoMatchFound] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
+  const [countryError, setCountryError] = useState<boolean>(false);
+  
+  // Validate country on mount
+  useEffect(() => {
+    if (!SUPPORTED_COUNTRIES.includes(countryCode as any)) {
+      setCountryError(true);
+    } else {
+      setCountryError(false);
+    }
+  }, [countryCode]);
   
   const handleGenerateBetslip = async () => {
+    // Don't proceed if country is invalid
+    if (countryError) {
+      return;
+    }
+    
     // Reset states
     setNoMatchFound(false);
     setBetslipResult(null);
@@ -41,7 +71,7 @@ export default function Home() {
     }, 100);
 
     try {
-      const result = await generateBetslip(targetOdds);
+      const result = await generateBetslip(countryCode, targetOdds);
       clearInterval(progressInterval);
       
       if (result) {
