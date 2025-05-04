@@ -129,7 +129,7 @@ export default function Home({ country }: HomeProps) {
           {processing && (
             <ProcessingState 
               progress={processingProgress} 
-              message={`Calculating optimal combinations for ${countryCode.toUpperCase()}`} 
+              message="Generating betslip" 
             />
           )}
 
