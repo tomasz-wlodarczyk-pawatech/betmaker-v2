@@ -39,7 +39,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const response = await axios.get(`https://pawa-api.replit.app/${countryCode}/events/popular`);
-      res.json(response.data);
+      
+      // Check if the response has the new format with status and data fields
+      if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+        // Return the data array directly for backward compatibility
+        res.json(response.data.data);
+      } else {
+        // Pass through the original response for backward compatibility
+        res.json(response.data);
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
       res.status(500).json({ message: "Failed to fetch events data" });
@@ -61,7 +69,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Fetch events data
       const response = await axios.get(`https://pawa-api.replit.app/${countryCode}/events/popular`);
-      const events = response.data;
+      
+      // Check if the response has the new format with status and data fields
+      let events;
+      if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+        events = response.data.data;
+      } else {
+        // Handle legacy format or unexpected response
+        events = Array.isArray(response.data) ? response.data : [];
+      }
 
       // Generate betslip
       const betslip = await generateBetslip(events, targetOdds);
