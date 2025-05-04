@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -17,11 +17,6 @@ function CountryValidator({ children }: { children: React.ReactNode }) {
   // Get current location
   const [location] = useLocation();
   
-  // Root path should redirect to default country (gh)
-  if (location === "/") {
-    return <Redirect to="/gh" />;
-  }
-  
   // Extract country code from path
   const countryCode = location.split("/")[1]?.toLowerCase();
   
@@ -37,7 +32,13 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={() => <Redirect to="/gh" />} />
+        <Route path="/" component={() => (
+          <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
+            <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
+            <p className="mb-4">Please specify a country code in the URL (e.g., /gh, /ng, etc.)</p>
+            <p className="text-sm">Supported countries: {SUPPORTED_COUNTRIES.join(', ')}</p>
+          </div>
+        )} />
         <Route path="/:country">
           {(params) => (
             <CountryValidator>
