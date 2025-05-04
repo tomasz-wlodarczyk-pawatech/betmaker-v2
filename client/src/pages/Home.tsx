@@ -112,41 +112,51 @@ export default function Home({ country }: HomeProps) {
 
   return (
     <>
-      <OddsInput 
-        targetOdds={targetOdds} 
-        setTargetOdds={setTargetOdds} 
-        onGenerate={handleGenerateBetslip}
-        disabled={processing}
-      />
-      
-      {processing && (
-        <ProcessingState 
-          progress={processingProgress} 
-          message="Calculating optimal combinations" 
-        />
-      )}
-
-      {error && (
+      {countryError ? (
         <ErrorState 
-          message="Unable to generate betslip. Please try again later."
-          onRetry={handleRetry}
+          message={`Invalid country code: ${country}. Supported countries include: ${SUPPORTED_COUNTRIES.join(', ')}`}
+          onRetry={() => window.location.href = '/gh'}
         />
-      )}
+      ) : (
+        <>
+          <OddsInput 
+            targetOdds={targetOdds} 
+            setTargetOdds={setTargetOdds} 
+            onGenerate={handleGenerateBetslip}
+            disabled={processing}
+          />
+          
+          {processing && (
+            <ProcessingState 
+              progress={processingProgress} 
+              message={`Calculating optimal combinations for ${countryCode.toUpperCase()}`} 
+            />
+          )}
 
-      {noMatchFound && (
-        <NoMatchState 
-          targetOdds={targetOdds}
-          onTryLower={() => handleSuggestedOdds(targetOdds * 0.65)}
-          onTryHigher={() => handleSuggestedOdds(targetOdds * 1.5)}
-        />
-      )}
+          {error && (
+            <ErrorState 
+              message="Unable to generate betslip. Please try again later."
+              onRetry={handleRetry}
+            />
+          )}
 
-      {betslipResult && (
-        <BetslipResults 
-          result={betslipResult}
-          targetOdds={targetOdds}
-          onRegenerate={handleRegenerateBetslip}
-        />
+          {noMatchFound && (
+            <NoMatchState 
+              targetOdds={targetOdds}
+              onTryLower={() => handleSuggestedOdds(targetOdds * 0.65)}
+              onTryHigher={() => handleSuggestedOdds(targetOdds * 1.5)}
+            />
+          )}
+
+          {betslipResult && (
+            <BetslipResults 
+              result={betslipResult}
+              targetOdds={targetOdds}
+              onRegenerate={handleRegenerateBetslip}
+              country={countryCode}
+            />
+          )}
+        </>
       )}
     </>
   );

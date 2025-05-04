@@ -6,19 +6,51 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { generateBookingCode } from "@/lib/api";
 
+// Mapping of country codes to BetPawa domains
+const COUNTRY_DOMAINS: Record<string, string> = {
+  ao: 'betpawa.ao',
+  bj: 'betpawa.bj',
+  bw: 'betpawa.co.bw',
+  cd: 'betpawa.cd',
+  cf: 'betpawa.cf',
+  cg: 'betpawa.cg',
+  ci: 'betpawa.ci',
+  cm: 'betpawa.cm',
+  ga: 'betpawa.ga',
+  gh: 'betpawa.com.gh',
+  ke: 'betpawa.co.ke',
+  lr: 'betpawa.com.lr',
+  ls: 'betpawa.co.ls',
+  mw: 'betpawa.mw',
+  mz: 'betpawa.co.mz',
+  ng: 'betpawa.ng',
+  rw: 'betpawa.rw',
+  sl: 'betpawa.sl',
+  sn: 'betpawa.sn',
+  tz: 'betpawa.co.tz',
+  ug: 'betpawa.ug',
+  zm: 'betpawa.co.zm',
+  zw: 'betpawa.co.zw',
+};
+
 interface BetslipResultsProps {
   result: BetSlipResult;
   targetOdds: number;
   onRegenerate: () => void;
+  country: string;
 }
 
 export default function BetslipResults({ 
   result, 
   targetOdds,
-  onRegenerate 
+  onRegenerate,
+  country
 }: BetslipResultsProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get the correct domain for this country
+  const domain = COUNTRY_DOMAINS[country] || 'betpawa.com.gh'; // Default to Ghana if not found
   
   const handleLoadBetslip = async () => {
     try {
@@ -27,19 +59,19 @@ export default function BetslipResults({
       // Extract selection IDs from the betslip result
       const selectionIds = result.selections.map(selection => selection.id);
       
-      // Generate booking code from BetPawa API
-      const bookingData = await generateBookingCode(selectionIds);
+      // Generate booking code from BetPawa API with country-specific URL
+      const bookingData = await generateBookingCode(country, selectionIds);
       
       if (bookingData && bookingData.code) {
-        // Construct the URL with booking code
-        const betPawaUrl = `https://www.betpawa.com.gh/?bookingCode=${bookingData.code}`;
+        // Construct the URL with booking code and correct country domain
+        const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
         
         // Open in new window
         window.open(betPawaUrl, '_blank');
         
         toast({
           title: "Betslip loaded!",
-          description: `Booking code: ${bookingData.code}`,
+          description: `Booking code: ${bookingData.code} for ${country.toUpperCase()}`,
         });
       }
     } catch (error) {

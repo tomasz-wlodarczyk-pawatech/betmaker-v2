@@ -16,9 +16,9 @@ export async function generateBetslip(country: string, targetOdds: number): Prom
   }
 }
 
-export async function generateBookingCode(selectionIds: string[]): Promise<{ code: string }> {
+export async function generateBookingCode(country: string, selectionIds: string[]): Promise<{ code: string }> {
   try {
-    const response = await apiRequest("POST", `${API_BASE}/booking/generate`, {
+    const response = await apiRequest("POST", `${API_BASE}/${country}/booking/generate`, {
       selectionIds
     });
     
