@@ -9,37 +9,30 @@ interface BetslipSelectionProps {
 export default function BetslipSelection({ selection }: BetslipSelectionProps) {
   // Format the date for display
   const formattedDate = selection.startTime ? 
-    format(new Date(selection.startTime), "h:mma EEE dd/MM") : 
-    "12:00pm Tue 15/12";
+    format(new Date(selection.startTime), "dd MMM HH:mm") : 
+    "Upcoming";
 
   return (
-    <div className="border-b border-gray-200 py-4">
-      <div className="text-xs text-gray-500 mb-1">{formattedDate}</div>
-      <div className="font-medium">{selection.eventName}</div>
-      <div className="text-xs text-gray-500 mb-2">
-        {selection.competition}
-      </div>
-      
-      <div className="flex items-center justify-between mt-2">
-        <div className="flex space-x-4">
-          <button className="border border-gray-300 rounded py-1 px-3 text-primary font-bold">
-            1
-            <span className="block text-gray-800">{selection.selectionName === "1" ? parseFloat(selection.odds).toFixed(2) : "12.75"}</span>
-          </button>
-          
-          <button className="border border-gray-300 rounded py-1 px-3 text-primary font-bold">
-            X
-            <span className="block text-gray-800">12.75</span>
-          </button>
-          
-          <button className="border border-gray-300 rounded py-1 px-3 text-primary font-bold">
-            2
-            <span className="block text-gray-800">{selection.selectionName === "2" ? parseFloat(selection.odds).toFixed(2) : "12.75"}</span>
-          </button>
+    <div className="border border-neutral-medium rounded-md p-3 hover:bg-neutral-light transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <div className="w-full">
+          <h4 className="font-medium text-secondary">{selection.eventName}</h4>
+          <div className="text-xs text-neutral-dark mt-1">
+            {selection.competition} - {formattedDate}
+          </div>
+          <div className="flex items-center mt-2">
+            <div className="text-sm">
+              {selection.marketName} - {selection.selectionName}
+              {selection.isHot && (
+                <span className="ml-1 text-red-500 inline-flex items-center">
+                  <FaFire className="h-3 w-3" />
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        
-        <div className="text-sm text-gray-500">
-          +34
+        <div className="bg-secondary text-white text-sm font-bold px-2 py-1 rounded ml-4 whitespace-nowrap">
+          <span>{parseFloat(selection.odds).toFixed(2)}</span>
         </div>
       </div>
     </div>
