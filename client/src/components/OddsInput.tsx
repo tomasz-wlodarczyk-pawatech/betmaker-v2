@@ -1,4 +1,4 @@
-import { Volleyball } from "lucide-react";
+import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
@@ -54,20 +54,23 @@ export default function OddsInput({
   ];
 
   return (
-    <Card className="mb-6">
-      <CardContent className="pt-5">
-        <h2 className="text-lg font-medium mb-4">Set Your Target Odds</h2>
-        
-        <div className="space-y-6">
+    <div className="mb-6 bg-white">
+      {/* Info banner */}
+      <div className="bg-gray-100 p-3 mb-4 text-sm text-center border-y border-gray-200">
+        Add 3 legs to your betslip to earn up to a 1000% Win Bonus.
+      </div>
+      
+      <div className="p-4">
+        <div className="space-y-4">
           {/* Odds input field and value display */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label htmlFor="totalOdds" className="text-sm font-medium">
-                Desired Total Odds
+                Desired Odds
               </label>
-              <div className="flex items-center bg-neutral-light rounded-md px-3 py-1">
-                <span className="font-medium text-lg">{Math.round(targetOdds)}</span>
-                <span className="text-neutral-dark ml-1">x</span>
+              <div className="flex items-center rounded-md">
+                <span className="font-bold text-lg">{Math.round(targetOdds)}</span>
+                <span className="text-gray-500 ml-1">x</span>
               </div>
             </div>
             
@@ -85,25 +88,25 @@ export default function OddsInput({
             />
             
             {/* Min/Max markers */}
-            <div className="flex justify-between text-xs text-neutral-dark">
+            <div className="flex justify-between text-xs text-gray-500">
               <span>Min: 2</span>
               <span>Max: 1000</span>
             </div>
           </div>
           
-          {/* Generate button aligned to the right */}
-          <div className="flex justify-end">
+          {/* Generate button full width */}
+          <div>
             <button 
               onClick={onGenerate}
               disabled={disabled}
-              className="bg-secondary hover:bg-secondary/90 text-white font-medium py-2.5 px-6 rounded-md transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Volleyball className="h-4 w-4 mr-2" />
-              Generate
+              <Search className="h-4 w-4 mr-2" />
+              Find Matches
             </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
