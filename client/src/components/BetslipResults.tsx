@@ -93,14 +93,14 @@ export default function BetslipResults({
           <h2 className="text-lg font-medium">Generated Betslip</h2>
         </div>
         
-        <div className="flex gap-3 mb-4">
-          <div className="bg-neutral-light rounded-md p-2 flex-1">
+        <div className="mb-4">
+          <div className="bg-neutral-light rounded-md p-2 mb-2">
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Actual Odds:</p>
               <p className="text-base font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
             </div>
           </div>
-          <div className="bg-neutral-light rounded-md p-2 flex-1">
+          <div className="bg-neutral-light rounded-md p-2 mb-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Selections:</p>
               <p className="text-base font-bold">{result.selections.length}</p>
@@ -108,7 +108,7 @@ export default function BetslipResults({
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="mb-5">
           <button 
             onClick={handleLoadBetslip}
             disabled={isLoading}
@@ -125,7 +125,7 @@ export default function BetslipResults({
           </button>
         </div>
 
-        <div className="border-t border-neutral-medium pt-4 mb-4">
+        <div className="mb-4">
           <h3 className="font-medium mb-3">Betslip Selections</h3>
           
           <div className="space-y-3">
