@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface OddsInputProps {
@@ -38,7 +37,7 @@ export default function OddsInput({
   };
   
   return (
-    <Card className="mb-6">
+    <div className="mb-6">
       <div className="p-4">
         <div className="mb-4">
           <div className="text-[#252a2d] font-roboto text-lg font-bold leading-6">
@@ -97,6 +96,6 @@ export default function OddsInput({
           </button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

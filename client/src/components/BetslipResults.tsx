@@ -1,5 +1,4 @@
-import { ExternalLink, Loader2, Upload } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -87,20 +86,20 @@ export default function BetslipResults({
   };
 
   return (
-    <Card className="mb-6">
-      <CardContent className="pt-5">
+    <div className="mb-6">
+      <div className="p-4">
         <div className="mb-4">
-          <h2 className="text-lg font-medium">Generated Betslip</h2>
+          <h2 className="text-[#252a2d] font-roboto text-lg font-bold leading-6">Generated Betslip</h2>
         </div>
         
         <div className="mb-4">
-          <div className="bg-neutral-light rounded-md p-2 mb-2">
+          <div className="bg-neutral-light rounded-md p-1 mb-2">
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Actual Odds:</p>
               <p className="text-base font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
             </div>
           </div>
-          <div className="bg-neutral-light rounded-md p-2 mb-3">
+          <div className="bg-neutral-light rounded-md p-1 mb-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Selections:</p>
               <p className="text-base font-bold">{result.selections.length}</p>
@@ -137,7 +136,7 @@ export default function BetslipResults({
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -11,7 +11,7 @@ export default function BetslipSelection({ selection }: BetslipSelectionProps) {
     if (!dateString) return "Upcoming";
     
     const date = parseISO(dateString);
-    const time = format(date, "h:mma");
+    const time = format(date, "h:mm a");
     const day = format(date, "EEE");
     const dateNum = format(date, "dd/MM");
     
@@ -21,12 +21,12 @@ export default function BetslipSelection({ selection }: BetslipSelectionProps) {
   const formattedDate = selection.startTime ? formatEventDate(selection.startTime) : "Upcoming";
 
   return (
-    <div className="border border-neutral-medium rounded-md p-3 hover:bg-neutral-light transition-colors">
+    <div className="border border-neutral-medium rounded-md p-2 hover:bg-neutral-light transition-colors">
       <div className="flex justify-between items-start mb-2">
         <div className="w-full">
           <h4 className="font-medium text-secondary">{selection.eventName}</h4>
           <div className="text-xs text-neutral-dark mt-1">
-            {formattedDate} Football - {selection.competition}
+            {formattedDate} - {selection.competition}
           </div>
           <div className="flex items-center mt-2">
             <div className="text-sm">
