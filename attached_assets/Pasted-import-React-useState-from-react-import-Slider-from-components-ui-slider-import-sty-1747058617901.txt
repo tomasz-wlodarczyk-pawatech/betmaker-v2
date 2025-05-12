@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+import { Slider } from '@/components/ui/slider';
+import styles from '../styles/MatchCardWeb.module.css';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+export default function OddsSliderCard() {
+  const [targetOdds, setTargetOdds] = useState<number>(10);
+  
+  // Convert slider value (2-1000) to a logarithmic scale for better user experience
+  // This makes changes at the lower end more granular
+  const handleSliderChange = (values: number[]) => {
+    const value = values[0];
+    setTargetOdds(value);
+  };
+
+  // Decrease odds by 1 (minimum 2)
+  const decreaseOdds = () => {
+    setTargetOdds(prev => Math.max(2, prev - 1));
+  };
+
+  // Increase odds by 1 (maximum 1000)
+  const increaseOdds = () => {
+    setTargetOdds(prev => Math.min(1000, prev + 1));
+  };
+
+  // Format the odds as a whole number
+  const formattedOdds = Math.round(targetOdds);
+  
+  return (
+    <div className={styles.MatchCardWeb_2550_102077}>
+      <div className={styles.Frame_115_134_23471}>
+        <div className={styles.Frame_68_134_23472}>
+          <div className="text-[#252a2d] font-family-roboto text-lg font-bold leading-6" style={{ fontFamily: 'Roboto', fontSize: '18px', fontWeight: 700, lineHeight: '24px' }}>Target Odds for Your Bet Slip</div>
+        </div>
+      </div>
+      <div className="p-1 w-full">
+        <div className="flex justify-center items-stretch mb-3 w-full h-12">
+          {/* Left arrow */}
+          <button 
+            onClick={decreaseOdds}
+            className="bg-[#f4f5f0] px-2 rounded-l cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center"
+            aria-label="Decrease odds by 1"
+          >
+            <ChevronLeft className="text-[#252a2d]" size={24} />
+          </button>
+
+          {/* Odds display */}
+          <div className="text-[#252a2d] text-xl font-bold bg-[#f4f5f0] px-4 py-2 flex-grow text-center border-x border-[#e6e7e2] flex items-center justify-center">
+            {formattedOdds}
+          </div>
+
+          {/* Right arrow */}
+          <button 
+            onClick={increaseOdds}
+            className="bg-[#f4f5f0] px-2 rounded-r cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center"
+            aria-label="Increase odds by 1"
+          >
+            <ChevronRight className="text-[#252a2d]" size={24} />
+          </button>
+        </div>
+        
+        {/* Slider with custom green styling */}
+        <div className="green-slider my-6 w-full">
+          <Slider
+            defaultValue={[10]}
+            min={2}
+            max={1000}
+            step={1}
+            value={[targetOdds]}
+            onValueChange={handleSliderChange}
+            className="w-full"
+          />
+        </div>
+        
+        {/* Generate betslip button */}
+        <button
+          className="mt-6 w-full bg-[#9CE800] text-[#252a2d] font-bold py-2 rounded"
+        >
+          Generate Betslip
+        </button>
+      </div>
+    </div>
+  );
+}
