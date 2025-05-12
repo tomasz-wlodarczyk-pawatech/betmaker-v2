@@ -27,12 +27,14 @@ export default function OddsInput({
 
   // Decrease odds by 1 (minimum 2)
   const decreaseOdds = () => {
-    setTargetOdds(prev => Math.max(2, prev - 1));
+    const newValue = Math.max(2, targetOdds - 1);
+    setTargetOdds(newValue);
   };
 
   // Increase odds by 1 (maximum 1000)
   const increaseOdds = () => {
-    setTargetOdds(prev => Math.min(1000, prev + 1));
+    const newValue = Math.min(1000, targetOdds + 1);
+    setTargetOdds(newValue);
   };
   
   return (
