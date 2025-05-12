@@ -1,7 +1,7 @@
-import { Volleyball } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface OddsInputProps {
   targetOdds: number;
@@ -16,94 +16,85 @@ export default function OddsInput({
   onGenerate,
   disabled = false 
 }: OddsInputProps) {
-  // Local state to track slider value for smoother UI
-  const [sliderValue, setSliderValue] = useState<number[]>([targetOdds]);
+  // Format the odds as a whole number
+  const formattedOdds = Math.round(targetOdds);
   
-  // Update local state when targetOdds changes externally
-  useEffect(() => {
-    setSliderValue([targetOdds]);
-  }, [targetOdds]);
-  
-  // Handle slider change
-  const handleSliderChange = (value: number[]) => {
-    const newValue = value[0];
-    // The slider step is already set to 1, but ensure it's rounded to whole number
-    const roundedValue = Math.round(newValue);
-    setSliderValue([roundedValue]);
-    setTargetOdds(roundedValue);
-  };
-  
-  // Handle manual input change as backup
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = parseFloat(e.target.value);
-    if (isNaN(value)) value = 10;
-    if (value < 2) value = 2;
-    if (value > 1000) value = 1000;
-    // Round to whole number
-    value = Math.round(value);
+  // Handle slider change - convert slider value (2-1000) for better user experience
+  const handleSliderChange = (values: number[]) => {
+    const value = values[0];
     setTargetOdds(value);
   };
 
-  // Display common odds markers
-  const commonOddsMarkers = [
-    { value: 2, label: "2x" },
-    { value: 10, label: "10x" },
-    { value: 100, label: "100x" },
-    { value: 500, label: "500x" },
-    { value: 1000, label: "1000x" }
-  ];
+  // Decrease odds by 1 (minimum 2)
+  const decreaseOdds = () => {
+    setTargetOdds(prev => Math.max(2, prev - 1));
+  };
 
+  // Increase odds by 1 (maximum 1000)
+  const increaseOdds = () => {
+    setTargetOdds(prev => Math.min(1000, prev + 1));
+  };
+  
   return (
     <Card className="mb-6">
-      <CardContent className="pt-5">
-        <h2 className="text-lg font-medium mb-4">Set Your Target Odds</h2>
-        
-        <div className="space-y-6">
-          {/* Odds input field and value display */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="totalOdds" className="text-sm font-medium">
-                Desired Total Odds
-              </label>
-              <div className="flex items-center bg-neutral-light rounded-md px-3 py-1">
-                <span className="font-medium text-lg">{Math.round(targetOdds)}</span>
-                <span className="text-neutral-dark ml-1">x</span>
-              </div>
+      <div className="p-4">
+        <div className="mb-4">
+          <div className="text-[#252a2d] font-roboto text-lg font-bold leading-6">
+            Target Odds for Your Bet Slip
+          </div>
+        </div>
+        <div className="p-1 w-full">
+          <div className="flex justify-center items-stretch mb-3 w-full h-12">
+            {/* Left arrow */}
+            <button 
+              onClick={decreaseOdds}
+              disabled={disabled}
+              className="bg-[#f4f5f0] px-2 rounded-l cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Decrease odds by 1"
+            >
+              <ChevronLeft className="text-[#252a2d]" size={24} />
+            </button>
+
+            {/* Odds display */}
+            <div className="text-[#252a2d] text-xl font-bold bg-[#f4f5f0] px-4 py-2 flex-grow text-center border-x border-[#e6e7e2] flex items-center justify-center">
+              {formattedOdds}
             </div>
-            
-            {/* Slider */}
+
+            {/* Right arrow */}
+            <button 
+              onClick={increaseOdds}
+              disabled={disabled}
+              className="bg-[#f4f5f0] px-2 rounded-r cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Increase odds by 1"
+            >
+              <ChevronRight className="text-[#252a2d]" size={24} />
+            </button>
+          </div>
+          
+          {/* Slider with custom green styling */}
+          <div className="green-slider my-6 w-full">
             <Slider
-              id="totalOdds-slider"
               defaultValue={[targetOdds]}
-              value={sliderValue}
               min={2}
               max={1000}
               step={1}
+              value={[targetOdds]}
               onValueChange={handleSliderChange}
               disabled={disabled}
-              className="py-4"
+              className="w-full"
             />
-            
-            {/* Min/Max markers */}
-            <div className="flex justify-between text-xs text-neutral-dark">
-              <span>Min: 2</span>
-              <span>Max: 1000</span>
-            </div>
           </div>
           
-          {/* Generate button aligned to the right */}
-          <div className="flex justify-end">
-            <button 
-              onClick={onGenerate}
-              disabled={disabled}
-              className="bg-secondary hover:bg-secondary/90 text-white font-medium py-2.5 px-6 rounded-md transition-colors shadow-sm flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Volleyball className="h-4 w-4 mr-2" />
-              Generate
-            </button>
-          </div>
+          {/* Generate betslip button */}
+          <button
+            onClick={onGenerate}
+            disabled={disabled}
+            className="mt-6 w-full bg-[#9CE800] text-[#252a2d] font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
+          >
+            Generate Betslip
+          </button>
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
