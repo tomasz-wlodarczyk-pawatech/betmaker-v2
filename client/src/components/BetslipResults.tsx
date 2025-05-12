@@ -93,18 +93,18 @@ export default function BetslipResults({
           <h2 className="text-lg font-medium">Generated Betslip</h2>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="bg-neutral-light rounded-md p-3 flex-1">
-            <p className="text-sm text-neutral-dark">Target Odds</p>
-            <p className="text-xl font-bold">{Math.round(targetOdds)}</p>
+        <div className="flex gap-3 mb-4">
+          <div className="bg-neutral-light rounded-md p-2 flex-1">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-neutral-dark">Actual Odds:</p>
+              <p className="text-base font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
+            </div>
           </div>
-          <div className="bg-neutral-light rounded-md p-3 flex-1">
-            <p className="text-sm text-neutral-dark">Actual Odds</p>
-            <p className="text-xl font-bold text-secondary">{result.totalOdds.toFixed(2)}</p>
-          </div>
-          <div className="bg-neutral-light rounded-md p-3 flex-1">
-            <p className="text-sm text-neutral-dark">Selections</p>
-            <p className="text-xl font-bold">{result.selections.length}</p>
+          <div className="bg-neutral-light rounded-md p-2 flex-1">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-neutral-dark">Selections:</p>
+              <p className="text-base font-bold">{result.selections.length}</p>
+            </div>
           </div>
         </div>
 
