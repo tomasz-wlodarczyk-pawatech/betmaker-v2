@@ -89,14 +89,8 @@ export default function BetslipResults({
   return (
     <Card className="mb-6">
       <CardContent className="pt-5">
-        <div className="flex justify-between items-center mb-4">
+        <div className="mb-4">
           <h2 className="text-lg font-medium">Generated Betslip</h2>
-          <div className="flex items-center">
-            <div className="flex h-4 w-4 items-center justify-center rounded-full bg-secondary text-xs text-white mr-1">
-              ✓
-            </div>
-            <span className="text-sm font-medium">Matched your criteria</span>
-          </div>
         </div>
         
         <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -114,18 +108,20 @@ export default function BetslipResults({
           </div>
         </div>
 
-        <div className="flex justify-end mb-4">
+        <div className="mb-4">
           <button 
             onClick={handleLoadBetslip}
             disabled={isLoading}
-            className="flex items-center justify-center bg-secondary text-white rounded-md px-4 py-2 hover:bg-secondary/90 transition-colors disabled:opacity-70"
+            className="w-full bg-[#9CE800] text-[#252a2d] font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              <span className="flex items-center justify-center">
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                Loading...
+              </span>
             ) : (
-              <ExternalLink className="h-4 w-4 mr-1" />
+              "Load Betslip"
             )}
-            Load Betslip
           </button>
         </div>
 
