@@ -87,13 +87,19 @@ export default function OddsInput({
           </div>
           
           {/* Generate betslip button */}
-          <button
-            onClick={onGenerate}
-            disabled={disabled}
-            className="mt-6 w-full bg-[#9CE800] text-[#252a2d] font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
-          >
-            Generate Betslip
-          </button>
+          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2 mt-6">
+            <button
+              onClick={onGenerate}
+              disabled={disabled}
+              className="flex justify-center items-center self-stretch flex-grow-0 flex-shrink-0 h-9 gap-2 px-3 bg-[#9ce800] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
+            >
+              <div className="flex justify-start items-start flex-grow-0 flex-shrink-0 relative">
+                <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
+                  Generate Betslip
+                </p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

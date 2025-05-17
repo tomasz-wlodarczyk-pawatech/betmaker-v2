@@ -108,20 +108,26 @@ export default function BetslipResults({
         </div>
 
         <div className="mb-5">
-          <button 
-            onClick={handleLoadBetslip}
-            disabled={isLoading}
-            className="w-full bg-[#9CE800] text-[#252a2d] font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                Loading...
-              </span>
-            ) : (
-              "Load Betslip"
-            )}
-          </button>
+          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2">
+            <button 
+              onClick={handleLoadBetslip}
+              disabled={isLoading}
+              className="flex justify-center items-center self-stretch flex-grow-0 flex-shrink-0 h-9 gap-2 px-3 bg-[#9ce800] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
+            >
+              <div className="flex justify-start items-start flex-grow-0 flex-shrink-0 relative">
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">Loading...</p>
+                  </span>
+                ) : (
+                  <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
+                    Load Betslip
+                  </p>
+                )}
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="mb-4">
