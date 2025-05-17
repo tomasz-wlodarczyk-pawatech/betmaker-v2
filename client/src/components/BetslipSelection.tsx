@@ -6,7 +6,7 @@ interface BetslipSelectionProps {
 }
 
 export default function BetslipSelection({ selection }: BetslipSelectionProps) {
-  // Format the date for display in the required format: "12:00pm Tue 15/12"
+  // Format the date for display in the required format: "9:45 PM Sun 18/05"
   const formatEventDate = (dateString: string) => {
     if (!dateString) return "Upcoming";
     
@@ -21,21 +21,24 @@ export default function BetslipSelection({ selection }: BetslipSelectionProps) {
   const formattedDate = selection.startTime ? formatEventDate(selection.startTime) : "Upcoming";
 
   return (
-    <div className="border border-neutral-medium rounded-md p-2 hover:bg-neutral-light transition-colors">
-      <div className="flex justify-between items-start mb-2">
-        <div className="w-full">
-          <h4 className="font-medium text-secondary">{selection.eventName}</h4>
-          <div className="text-xs text-neutral-dark mt-1">
-            {formattedDate} - {selection.competition}
-          </div>
-          <div className="flex items-center mt-2">
-            <div className="text-sm">
-              {selection.marketName} - {selection.selectionName}
-            </div>
+    <div className="border border-neutral-medium hover:bg-neutral-light transition-colors">
+      <div className="p-3">
+        {/* Event name with odds */}
+        <div className="flex justify-between items-center w-full">
+          <h4 className="text-[#252a2d] font-medium text-base">{selection.eventName}</h4>
+          <div className="bg-[#9CE800] text-[#252a2d] text-base font-bold px-2 py-0.5 rounded">
+            {parseFloat(selection.odds).toFixed(2)}
           </div>
         </div>
-        <div className="bg-[#9CE800] text-[#252a2d] text-sm font-bold px-2 py-1 rounded ml-4 whitespace-nowrap">
-          <span>{parseFloat(selection.odds).toFixed(2)}</span>
+        
+        {/* Event details */}
+        <div className="text-xs text-neutral-dark mt-1">
+          {formattedDate} - Football - {selection.competition}
+        </div>
+        
+        {/* Selection details */}
+        <div className="mt-2 text-sm text-[#252a2d]">
+          {selection.marketName} - {selection.selectionName}
         </div>
       </div>
     </div>
