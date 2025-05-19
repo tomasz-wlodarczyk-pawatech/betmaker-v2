@@ -87,7 +87,7 @@ export default function BetslipResults({
 
   return (
     <div className="mb-6">
-      <div className="p-4">
+      <div className="p-2">
         <div className="mb-4">
           <h2 className="text-[#252a2d] font-roboto text-lg font-bold leading-6">Generated Betslip</h2>
         </div>

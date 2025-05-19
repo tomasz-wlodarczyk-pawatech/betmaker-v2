@@ -38,10 +38,10 @@ export default function OddsInput({
   
   return (
     <div className="mb-6">
-      <div className="p-4">
+      <div className="p-2">
         <div className="mb-4">
           <div className="text-[#252a2d] font-roboto text-lg font-bold leading-6">
-            Target Odds for Your Bet Slip
+            Select Odds for Betslip
           </div>
         </div>
         <div className="p-1 w-full">

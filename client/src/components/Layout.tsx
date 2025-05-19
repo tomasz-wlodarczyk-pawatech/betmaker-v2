@@ -8,7 +8,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-grow container mx-auto p-2 md:p-6 max-w-5xl">
+      <main className="flex-grow container mx-auto p-0 md:p-6 max-w-5xl">
         {children}
       </main>
 

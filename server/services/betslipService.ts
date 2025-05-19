@@ -11,7 +11,7 @@ export async function generateBetslip(
 ): Promise<BetSlipResult | null> {
   // Set a timeout to prevent long-running calculations
   const startTime = Date.now();
-  const MAX_EXECUTION_TIME = 500; // 500ms max execution time
+  const MAX_EXECUTION_TIME = 1000; // 1000ms max execution time
   
   // Extract all hot selections
   const hotSelections = getHotSelections(events);
