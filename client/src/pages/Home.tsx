@@ -79,7 +79,7 @@ export default function Home({ brandIdentifier }: HomeProps) {
   };
 
   return (
-    <Suspense fallback={<div className="text-center mt-8">Loading...</div>}>
+    <Suspense>
       {invalidBrand ? (
         <ErrorState
           message={`Invalid brand identifier: ${brandIdentifier}. Supported brands: ${supportedBrandIdentifiers.join(", ")}`}

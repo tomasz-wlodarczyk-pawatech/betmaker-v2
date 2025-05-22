@@ -23,7 +23,7 @@ function CountryValidator({ children }: { children: React.ReactNode }) {
 
   if (error) {
     return (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense>
         <NotFound />
       </Suspense>
     );
@@ -31,7 +31,7 @@ function CountryValidator({ children }: { children: React.ReactNode }) {
 
   if (!brandIdentifier || !getCountryByBrand(countries, brandIdentifier)) {
     return (
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense>
         <NotFound />
       </Suspense>
     );
@@ -49,7 +49,7 @@ function Router() {
 
   return (
     <Layout>
-      <Suspense fallback={<div className="p-4">Loading page...</div>}>
+      <Suspense>
         <Switch>
           <Route
             path="/"
