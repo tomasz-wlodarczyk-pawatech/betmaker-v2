@@ -1,53 +1,82 @@
+import { Suspense, lazy } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/Home";
 import Layout from "@/components/Layout";
+import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
 
-// List of supported country codes
-const SUPPORTED_COUNTRIES = [
-  'ao', 'bj', 'bw', 'cd', 'cf', 'cg', 'ci', 'cm', 'ga', 'gh', 
-  'ke', 'lr', 'ls', 'mw', 'mz', 'ng', 'rw', 'sl', 'sn', 'tz', 'ug', 'zm', 'zw'
-];
+// Lazy load pages
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Home = lazy(() => import("@/pages/Home"));
 
 function CountryValidator({ children }: { children: React.ReactNode }) {
-  // Get current location
   const [location] = useLocation();
-  
-  // Extract country code from path
-  const countryCode = location.split("/")[1]?.toLowerCase();
-  
-  // Check if country code is supported
-  if (!countryCode || !SUPPORTED_COUNTRIES.includes(countryCode)) {
-    return <NotFound />;
+  const { data: countries, isLoading, error } = useCountries();
+
+  const brandIdentifier = location.split("/")[1];
+
+  if (isLoading) {
+    return <div className="p-4">Loading...</div>;
   }
-  
+
+  if (error) {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <NotFound />
+      </Suspense>
+    );
+  }
+
+  if (!brandIdentifier || !getCountryByBrand(countries, brandIdentifier)) {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <NotFound />
+      </Suspense>
+    );
+  }
+
   return <>{children}</>;
 }
 
 function Router() {
+  const { data: countries } = useCountries();
+
+  if (!countries?.length) {
+    return null;
+  }
+
   return (
     <Layout>
-      <Switch>
-        <Route path="/" component={() => (
-          <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
-            <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
-            <p className="mb-4">Please specify a country code in the URL (e.g., /gh, /ng, etc.)</p>
-            <p className="text-sm">Supported countries: {SUPPORTED_COUNTRIES.join(', ')}</p>
-          </div>
-        )} />
-        <Route path="/:country">
-          {(params) => (
-            <CountryValidator>
-              <Home country={params.country} />
-            </CountryValidator>
-          )}
-        </Route>
-        <Route component={NotFound} />
-      </Switch>
+      <Suspense fallback={<div className="p-4">Loading page...</div>}>
+        <Switch>
+          <Route
+            path="/"
+            component={() => (
+              <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
+                <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
+                <p className="mb-4">
+                  Please specify a valid brand identifier in the URL (e.g.,
+                  /betpawa-gh, /betpawa-ng, etc.)
+                </p>
+                <p className="text-sm">
+                  Supported brand identifiers:{" "}
+                  {countries.map((c) => c.brandIdentifier).join(", ")}
+                </p>
+              </div>
+            )}
+          />
+          <Route path="/:brandIdentifier">
+            {(params) => (
+              <CountryValidator>
+                <Home brandIdentifier={params.brandIdentifier} />
+              </CountryValidator>
+            )}
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </Layout>
   );
 }

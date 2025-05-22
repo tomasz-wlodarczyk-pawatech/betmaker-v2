@@ -50,3 +50,10 @@ export interface HotSelection {
   marketName: string;
   startTime: string;
 }
+
+export type Country = {
+  brandIdentifier: string;
+  countryIso2Code: string;
+  rootDomain: string;
+  landingPageActive: boolean;
+};
