@@ -2,113 +2,119 @@
 
 ## Design Philosophy
 
-The BetPawa Betslip Generator application follows a clean, modern interface with a focus on usability and a professional appearance. The design uses a dark theme with lime green accents to match BetPawa's brand identity.
+The BetPawa Betslip Generator application follows a clean, modern interface with a focus on usability and a professional appearance. The design uses a white background with bright lime green accents to match BetPawa's brand identity.
 
 ## Color Palette
 
 ### Primary Colors
 
-- **Background:** `#121212` (Dark background)
-- **Secondary:** `#6ded8a` (Lime green)
-- **Text:** `#ffffff` (White)
+- **Background:** `#ffffff` (White background)
+- **Primary Green:** `#9ce800` (BetPawa lime green)
+- **Text Primary:** `#252a2d` (Dark text)
+- **Text Secondary:** `#6b7280` (Gray text)
 - **Destructive:** `#ef4444` (Red)
 
 ### Neutral Colors
 
-- **Neutral Light:** `#1e1e1e` (Lighter background for cards)
-- **Neutral Medium:** `#2e2e2e` (Borders)
-- **Neutral Dark:** `#a1a1a1` (Secondary text)
+- **Neutral Light:** `#f4f5f0` (Light gray for input backgrounds)
+- **Neutral Medium:** `#e6e7e2` (Borders and dividers)
+- **Neutral Dark:** `#9ca3af` (Secondary text)
 
 ## Typography
 
-- **Primary Font:** Inter (Sans-serif font)
-- **Headings:** Font weight 600-700
-- **Body:** Font weight 400
-- **Input Labels:** Font weight 500
+- **Primary Font:** Roboto (Sans-serif font)
+- **Headings:** Font weight 700 (Bold)
+- **Body:** Font weight 400 (Regular)
+- **Button Text:** Font weight 700 (Bold, Uppercase)
 
 ### Font Sizes
 
-- **Large Headings:** 24px (1.5rem)
-- **Section Headings:** 18px (1.125rem)
-- **Body Text:** 16px (1rem)
-- **Small Text:** 14px (0.875rem)
-- **Very Small Text:** 12px (0.75rem)
+- **Large Headings:** 18px (1.125rem)
+- **Section Headings:** 16px (1rem)
+- **Body Text:** 14px (0.875rem)
+- **Small Text:** 12px (0.75rem)
+- **Button Text:** 14px (0.875rem)
 
 ## Component Styling
 
 ### Cards
 
+The current design removes card borders for a cleaner look:
+
 ```css
-.card {
-  border-radius: 8px;
-  background-color: #1e1e1e;
-  border: 1px solid #2e2e2e;
+.card-content {
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  background: transparent;
 }
 ```
 
 ### Buttons
 
-**Primary Button:**
+**Primary Action Button (Generate/Load Betslip):**
 ```css
 .button-primary {
-  background-color: #6ded8a;
-  color: #121212;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 6px;
-  transition: opacity 150ms;
+  background-color: #9ce800;
+  color: #252a2d;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 150ms;
 }
 
 .button-primary:hover {
-  opacity: 0.9;
+  background-color: #8bd700;
 }
 
 .button-primary:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 ```
 
-**Secondary Button:**
+**Odds Control Buttons:**
 ```css
-.button-secondary {
-  background-color: #2e2e2e;
-  color: #ffffff;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 6px;
+.odds-control-button {
+  background-color: #f4f5f0;
+  color: #252a2d;
+  padding: 8px;
+  border: none;
   transition: background-color 150ms;
 }
 
-.button-secondary:hover {
-  background-color: #3e3e3e;
+.odds-control-button:hover {
+  background-color: #e6e7e2;
 }
 ```
 
-### Form Inputs
+### Odds Input Controls
 
+**Odds Display:**
 ```css
-.input {
-  background-color: #1e1e1e;
-  border: 1px solid #2e2e2e;
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: border-color 150ms;
+.odds-display {
+  background-color: #f4f5f0;
+  color: #252a2d;
+  font-weight: 700;
+  font-size: 20px;
+  text-align: center;
+  padding: 8px 16px;
+  border-left: 1px solid #e6e7e2;
+  border-right: 1px solid #e6e7e2;
+  flex-grow: 1;
 }
+```
 
-.input:focus {
-  border-color: #6ded8a;
-  outline: none;
-}
-
-.input-label {
-  color: #a1a1a1;
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 6px;
+**Slider:**
+```css
+.odds-slider {
+  width: 100%;
+  margin: 24px 0;
 }
 ```
 
@@ -118,14 +124,14 @@ The BetPawa Betslip Generator application follows a clean, modern interface with
 .progress-container {
   width: 100%;
   height: 8px;
-  background-color: #2e2e2e;
+  background-color: #e6e7e2;
   border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: #6ded8a;
+  background-color: #9ce800;
   transition: width 150ms ease-out;
 }
 ```
@@ -156,22 +162,27 @@ The BetPawa Betslip Generator application follows a clean, modern interface with
 
 ### Betslip Selection Item
 
+Updated design with full-width layout and green odds background:
+
 ```jsx
-<div className="border border-neutral-medium rounded-md p-3 hover:bg-neutral-light transition-colors">
-  <div className="flex justify-between items-start mb-2">
-    <div className="w-full">
-      <h4 className="font-medium text-secondary">{eventName}</h4>
-      <div className="text-xs text-neutral-dark mt-1">
-        {competition} - {formattedDate}
-      </div>
-      <div className="flex items-center mt-2">
-        <div className="text-sm">
-          {marketName} - {selectionName}
-        </div>
+<div className="border border-neutral-medium hover:bg-neutral-light transition-colors">
+  <div className="p-3">
+    {/* Event name with odds */}
+    <div className="flex justify-between items-center w-full">
+      <h4 className="text-[#252a2d] font-medium text-base">{eventName}</h4>
+      <div className="bg-[#9CE800] text-[#252a2d] text-base font-bold px-2 py-0.5 rounded">
+        {odds}
       </div>
     </div>
-    <div className="bg-secondary text-white text-sm font-bold px-2 py-1 rounded ml-4 whitespace-nowrap">
-      <span>{odds}</span>
+    
+    {/* Event details */}
+    <div className="text-xs text-neutral-dark mt-1">
+      {formattedDate} - Football - {competition}
+    </div>
+    
+    {/* Selection details */}
+    <div className="mt-2 text-sm text-[#252a2d]">
+      {marketName} - {selectionName}
     </div>
   </div>
 </div>
@@ -188,10 +199,14 @@ The BetPawa Betslip Generator application follows a clean, modern interface with
 
 ### Stats Card
 
+Updated compact design for odds and selections:
+
 ```jsx
-<div className="bg-neutral-light rounded-md p-3 flex-1">
-  <p className="text-sm text-neutral-dark">{statLabel}</p>
-  <p className="text-xl font-bold">{statValue}</p>
+<div className="bg-neutral-light rounded-md p-2 flex-1">
+  <div className="flex items-center justify-between">
+    <p className="text-sm text-neutral-dark">{statLabel}:</p>
+    <p className="text-base font-bold">{statValue}</p>
+  </div>
 </div>
 ```
 
