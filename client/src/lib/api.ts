@@ -1,3 +1,4 @@
+import { COUNTRIES } from "./countries";
 import { apiRequest, queryClient } from "./queryClient";
 import { BetSlipResult, Country } from "@/types";
 
@@ -8,7 +9,7 @@ export async function generateBetslip(
   targetOdds: number,
 ): Promise<BetSlipResult | null> {
   try {
-    const countries = queryClient.getQueryData(["countries"]) as Country[];
+    const countries = COUNTRIES as Country[];
 
     const countryData = countries?.find(
       (c) => c.countryIso2Code.toLowerCase() === countryCode.toLowerCase(),

@@ -24,12 +24,7 @@ app.use(
         frameAncestors: ["*"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: [
-          "'self'",
-          "https://list-events-pawa.replit.app",
-          "https://www.betpawa.com",
-          "https://www.google-analytics.com",
-        ],
+        connectSrc: ["'self'", "*"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'self'"],
