@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { memo } from "react";
 
 interface LoadingStateProps {
   message?: string;
   detail?: string;
 }
 
-export default function LoadingState({ 
+const LoadingState = memo(function LoadingState({ 
   message = "Loading...", 
   detail = "This may take a moment" 
 }: LoadingStateProps) {
@@ -20,4 +21,6 @@ export default function LoadingState({
       </CardContent>
     </Card>
   );
-}
+});
+
+export default LoadingState;

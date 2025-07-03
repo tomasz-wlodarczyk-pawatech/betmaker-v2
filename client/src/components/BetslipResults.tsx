@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { generateBookingCode } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries.ts";
 
@@ -13,7 +13,7 @@ interface BetslipResultsProps {
   brandIdentifier: string;
 }
 
-export default function BetslipResults({
+const BetslipResults = memo(function BetslipResults({
   result,
   targetOdds,
   onRegenerate,
@@ -23,15 +23,24 @@ export default function BetslipResults({
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: countries } = useCountries();
-  const countryData = getCountryByBrand(countries, brandIdentifier);
+  
+  // Memoize country data to avoid recalculation on every render
+  const countryData = useMemo(() => 
+    getCountryByBrand(countries, brandIdentifier), 
+    [countries, brandIdentifier]
+  );
+  
   const domain = countryData?.rootDomain || "betpawa.com.gh";
 
-  const handleLoadBetslip = async () => {
+  // Memoize selection IDs to avoid recalculation
+  const selectionIds = useMemo(() => 
+    result.selections.map((selection) => selection.id), 
+    [result.selections]
+  );
+
+  const handleLoadBetslip = useCallback(async () => {
     try {
       setIsLoading(true);
-
-      // Extract selection IDs from the betslip result
-      const selectionIds = result.selections.map((selection) => selection.id);
 
       // Generate booking code from BetPawa API with country-specific URL
       const bookingData = await generateBookingCode(
@@ -70,7 +79,7 @@ export default function BetslipResults({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectionIds, countryData, brandIdentifier, domain, toast]);
 
   return (
     <div className="mb-6">
@@ -125,7 +134,6 @@ export default function BetslipResults({
 
         <div className="mb-4">
           <h3 className="font-medium mb-3">Betslip Selections</h3>
-
           <div className="space-y-3">
             {result.selections.map((selection) => (
               <BetslipSelection key={selection.id} selection={selection} />
@@ -135,4 +143,6 @@ export default function BetslipResults({
       </div>
     </div>
   );
-}
+});
+
+export default BetslipResults;

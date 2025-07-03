@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, memo } from "react";
 import { Slider } from "@/components/ui/slider";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -9,7 +9,7 @@ interface OddsInputProps {
   disabled?: boolean;
 }
 
-export default function OddsInput({ 
+const OddsInput = memo(function OddsInput({ 
   targetOdds, 
   setTargetOdds, 
   onGenerate,
@@ -19,22 +19,22 @@ export default function OddsInput({
   const formattedOdds = Math.round(targetOdds);
   
   // Handle slider change - convert slider value (2-1000) for better user experience
-  const handleSliderChange = (values: number[]) => {
+  const handleSliderChange = useCallback((values: number[]) => {
     const value = values[0];
     setTargetOdds(value);
-  };
+  }, [setTargetOdds]);
 
   // Decrease odds by 1 (minimum 2)
-  const decreaseOdds = () => {
+  const decreaseOdds = useCallback(() => {
     const newValue = Math.max(2, targetOdds - 1);
     setTargetOdds(newValue);
-  };
+  }, [targetOdds, setTargetOdds]);
 
   // Increase odds by 1 (maximum 1000)
-  const increaseOdds = () => {
+  const increaseOdds = useCallback(() => {
     const newValue = Math.min(1000, targetOdds + 1);
     setTargetOdds(newValue);
-  };
+  }, [targetOdds, setTargetOdds]);
   
   return (
     <div className="mb-6">
@@ -49,45 +49,44 @@ export default function OddsInput({
             {/* Left arrow */}
             <button 
               onClick={decreaseOdds}
-              disabled={disabled}
-              className="bg-[#f4f5f0] px-2 rounded-l cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Decrease odds by 1"
+              disabled={disabled || targetOdds <= 2}
+              className="flex justify-center items-center bg-[#f4f5f0] border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e6e7e2] transition-colors"
             >
-              <ChevronLeft className="text-[#252a2d]" size={24} />
+              <ChevronLeft className="h-5 w-5 text-[#252a2d]" />
             </button>
-
-            {/* Odds display */}
-            <div className="text-[#252a2d] text-xl font-bold bg-[#f4f5f0] px-4 py-2 flex-grow text-center border-x border-[#e6e7e2] flex items-center justify-center">
-              {formattedOdds}
+            
+            {/* Center display */}
+            <div className="flex justify-center items-center bg-[#f4f5f0] border-l border-r border-[#e6e7e2] px-4 flex-grow text-center">
+              <p className="text-[#252a2d] font-roboto text-xl font-bold">
+                {formattedOdds}
+              </p>
             </div>
-
+            
             {/* Right arrow */}
             <button 
               onClick={increaseOdds}
-              disabled={disabled}
-              className="bg-[#f4f5f0] px-2 rounded-r cursor-pointer hover:bg-[#e6e7e2] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Increase odds by 1"
+              disabled={disabled || targetOdds >= 1000}
+              className="flex justify-center items-center bg-[#f4f5f0] border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e6e7e2] transition-colors"
             >
-              <ChevronRight className="text-[#252a2d]" size={24} />
+              <ChevronRight className="h-5 w-5 text-[#252a2d]" />
             </button>
           </div>
-          
-          {/* Slider with custom green styling */}
-          <div className="green-slider my-6 w-full">
-            <Slider
-              defaultValue={[targetOdds]}
+
+          {/* Slider */}
+          <div className="mb-6">
+            <Slider 
+              value={[targetOdds]} 
+              onValueChange={handleSliderChange}
               min={2}
               max={1000}
               step={1}
-              value={[targetOdds]}
-              onValueChange={handleSliderChange}
               disabled={disabled}
               className="w-full"
             />
           </div>
-          
-          {/* Generate betslip button */}
-          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2 mt-6">
+
+          {/* Generate Button */}
+          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2">
             <button
               onClick={onGenerate}
               disabled={disabled}
@@ -104,4 +103,6 @@ export default function OddsInput({
       </div>
     </div>
   );
-}
+});
+
+export default OddsInput;
