@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { memo, useMemo } from "react";
 
 interface ProcessingStateProps {
   progress: number;
@@ -6,7 +7,7 @@ interface ProcessingStateProps {
   detail?: string;
 }
 
-export default function ProcessingState({ 
+const ProcessingState = memo(function ProcessingState({ 
   progress, 
   message = "Processing...",
   detail = "Testing combinations to match your target odds"
@@ -32,4 +33,6 @@ export default function ProcessingState({
       </CardContent>
     </Card>
   );
-}
+});
+
+export default ProcessingState;

@@ -1,10 +1,10 @@
+import { memo, useMemo, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState, memo, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { generateBookingCode } from "@/lib/api";
-import { getCountryByBrand, useCountries } from "@/hooks/use-countries.ts";
+import { getCountryByBrand, useCountries } from "@/hooks/use-countries";
 
 interface BetslipResultsProps {
   result: BetSlipResult;
@@ -13,7 +13,58 @@ interface BetslipResultsProps {
   brandIdentifier: string;
 }
 
-const BetslipResults = memo(function BetslipResults({
+// Optimized Selection component to prevent re-renders
+const OptimizedBetslipSelection = memo(function OptimizedBetslipSelection({ 
+  selection 
+}: { 
+  selection: BetSlipResult['selections'][0] 
+}) {
+  const formattedDate = useMemo(() => {
+    if (!selection.startTime) return "Upcoming";
+    
+    const date = new Date(selection.startTime);
+    const time = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+    const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const dateNum = date.toLocaleDateString('en-US', { 
+      day: '2-digit', 
+      month: '2-digit' 
+    });
+    
+    return `${time} ${day} ${dateNum}`;
+  }, [selection.startTime]);
+
+  const formattedOdds = useMemo(() => 
+    parseFloat(selection.odds).toFixed(2), 
+    [selection.odds]
+  );
+
+  return (
+    <div className="border border-neutral-medium hover:bg-neutral-light transition-colors">
+      <div className="p-3">
+        <div className="flex justify-between items-center w-full">
+          <h4 className="text-[#252a2d] font-medium text-base">{selection.eventName}</h4>
+          <div className="bg-[#9CE800] text-[#252a2d] text-base font-bold px-2 py-0.5 rounded">
+            {formattedOdds}
+          </div>
+        </div>
+        
+        <div className="text-xs text-neutral-dark mt-1">
+          {formattedDate} - Football - {selection.competition}
+        </div>
+        
+        <div className="text-sm text-[#252a2d] font-medium mt-1">
+          {selection.marketName} - {selection.selectionName}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+export default memo(function OptimizedBetslipResults({
   result,
   targetOdds,
   onRegenerate,
@@ -21,49 +72,38 @@ const BetslipResults = memo(function BetslipResults({
 }: BetslipResultsProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
   const { data: countries } = useCountries();
   
-  // Memoize country data calculation
-  const countryData = useMemo(() => 
-    getCountryByBrand(countries, brandIdentifier), 
-    [countries, brandIdentifier]
-  );
-  
-  const domain = useMemo(() => 
-    countryData?.rootDomain || "betpawa.com.gh", 
-    [countryData]
-  );
-
-  // Memoize selection IDs to prevent recalculation
-  const selectionIds = useMemo(() => 
-    result.selections.map((selection) => selection.id),
-    [result.selections]
-  );
+  // Pre-calculate and memoize all expensive operations
+  const memoizedData = useMemo(() => {
+    const countryData = getCountryByBrand(countries, brandIdentifier);
+    const domain = countryData?.rootDomain || "betpawa.com.gh";
+    const selectionIds = result.selections.map((selection) => selection.id);
+    const totalOdds = result.totalOdds.toFixed(2);
+    const selectionCount = result.selections.length;
+    
+    return { countryData, domain, selectionIds, totalOdds, selectionCount };
+  }, [countries, brandIdentifier, result.selections, result.totalOdds]);
 
   const handleLoadBetslip = useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // Generate booking code from BetPawa API with country-specific URL
       const bookingData = await generateBookingCode(
-        countryData?.countryIso2Code ?? "gh",
-        selectionIds,
+        memoizedData.countryData?.countryIso2Code ?? "gh",
+        memoizedData.selectionIds,
       );
 
-      if (bookingData && bookingData.code) {
-        // Send message to parent window with booking code
+      if (bookingData?.code) {
+        // Send message to parent window
         window.parent.postMessage({
           type: "generated_booking_code",
           bookingCode: bookingData.code,
           brandIdentifier: brandIdentifier,
-          domain: domain
+          domain: memoizedData.domain
         }, "*");
 
-        // Construct the URL with booking code and correct country domain
-        const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
-
-        // Open in new window
+        const betPawaUrl = `https://www.${memoizedData.domain}/?bookingCode=${bookingData.code}`;
         window.open(betPawaUrl, "_blank");
 
         toast({
@@ -75,14 +115,13 @@ const BetslipResults = memo(function BetslipResults({
       console.error("Error loading betslip:", error);
       toast({
         title: "Error loading betslip",
-        description:
-          "There was a problem loading your betslip. Please try again.",
+        description: "There was a problem loading your betslip. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [countryData, selectionIds, domain, brandIdentifier, toast]);
+  }, [memoizedData, brandIdentifier, toast]);
 
   return (
     <div className="mb-6">
@@ -98,14 +137,14 @@ const BetslipResults = memo(function BetslipResults({
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Actual Odds:</p>
               <p className="text-base font-bold text-secondary">
-                {result.totalOdds.toFixed(2)}
+                {memoizedData.totalOdds}
               </p>
             </div>
           </div>
           <div className="bg-neutral-light rounded-md p-1 mb-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-dark">Selections:</p>
-              <p className="text-base font-bold">{result.selections.length}</p>
+              <p className="text-base font-bold">{memoizedData.selectionCount}</p>
             </div>
           </div>
         </div>
@@ -137,10 +176,9 @@ const BetslipResults = memo(function BetslipResults({
 
         <div className="mb-4">
           <h3 className="font-medium mb-3">Betslip Selections</h3>
-
           <div className="space-y-3">
             {result.selections.map((selection) => (
-              <BetslipSelection key={selection.id} selection={selection} />
+              <OptimizedBetslipSelection key={selection.id} selection={selection} />
             ))}
           </div>
         </div>
@@ -148,5 +186,3 @@ const BetslipResults = memo(function BetslipResults({
     </div>
   );
 });
-
-export default BetslipResults;

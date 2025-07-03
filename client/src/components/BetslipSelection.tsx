@@ -1,24 +1,23 @@
 import { format, parseISO } from "date-fns";
 import { BetSlipSelection } from "@/types";
+import { memo, useMemo } from "react";
 
 interface BetslipSelectionProps {
   selection: BetSlipSelection;
 }
 
-export default function BetslipSelection({ selection }: BetslipSelectionProps) {
-  // Format the date for display in the required format: "9:45 PM Sun 18/05"
-  const formatEventDate = (dateString: string) => {
-    if (!dateString) return "Upcoming";
+const BetslipSelection = memo(function BetslipSelection({ selection }: BetslipSelectionProps) {
+  // Memoize the formatted date to avoid recalculation
+  const formattedDate = useMemo(() => {
+    if (!selection.startTime) return "Upcoming";
     
-    const date = parseISO(dateString);
+    const date = parseISO(selection.startTime);
     const time = format(date, "h:mm a");
     const day = format(date, "EEE");
     const dateNum = format(date, "dd/MM");
     
     return `${time} ${day} ${dateNum}`;
-  };
-  
-  const formattedDate = selection.startTime ? formatEventDate(selection.startTime) : "Upcoming";
+  }, [selection.startTime]);
 
   return (
     <div className="border border-neutral-medium hover:bg-neutral-light transition-colors">
@@ -43,4 +42,6 @@ export default function BetslipSelection({ selection }: BetslipSelectionProps) {
       </div>
     </div>
   );
-}
+});
+
+export default BetslipSelection;
