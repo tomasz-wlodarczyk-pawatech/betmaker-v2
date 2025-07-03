@@ -40,6 +40,14 @@ export default function BetslipResults({
       );
 
       if (bookingData && bookingData.code) {
+        // Send message to parent window with booking code
+        window.parent.postMessage({
+          type: "generated_booking_code",
+          bookingCode: bookingData.code,
+          brandIdentifier: brandIdentifier,
+          domain: domain
+        }, "*");
+
         // Construct the URL with booking code and correct country domain
         const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
 
