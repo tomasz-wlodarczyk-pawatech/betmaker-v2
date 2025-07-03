@@ -1,9 +1,8 @@
-import { useState, useEffect, lazy, Suspense, memo, useCallback, useMemo } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import OddsInput from "@/components/OddsInput";
 import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
-import { useDebounce } from "@/lib/performance";
 
 // Lazy loaded components
 const BetslipResults = lazy(() => import("@/components/BetslipResults"));
@@ -18,7 +17,7 @@ interface HomeProps {
   brandIdentifier: string;
 }
 
-const Home = memo(function Home({ brandIdentifier }: HomeProps) {
+export default function Home({ brandIdentifier }: HomeProps) {
   const { data: countries } = useCountries();
   const supportedBrandIdentifiers =
     countries?.map((c) => c.brandIdentifier.toLowerCase()) ?? [];
@@ -43,16 +42,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     setInvalidBrand(!isValid);
   }, [brandIdentifier, supportedBrandIdentifiers]);
 
-  // Memoize country data to avoid recalculation
-  const countryData = useMemo(() => 
-    getCountryByBrand(countries, brandIdentifier), 
-    [countries, brandIdentifier]
-  );
-
-  // Debounce the generate function to prevent excessive API calls
-  const debouncedGenerate = useDebounce(generateBetslip, 300);
-
-  const handleGenerateBetslip = useCallback(async () => {
+  const handleGenerateBetslip = async () => {
     if (invalidBrand) return;
 
     setNoMatchFound(false);
@@ -138,6 +128,4 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
       )}
     </Suspense>
   );
-});
-
-export default Home;
+}

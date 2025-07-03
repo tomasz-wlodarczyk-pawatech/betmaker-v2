@@ -1,9 +1,5 @@
 import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
 
-// Cache for processed hot selections to avoid re-processing
-const hotSelectionsCache = new Map<string, { selections: HotSelection[], timestamp: number }>();
-const HOT_SELECTIONS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 /**
  * Generate a betslip with selections that match the target odds
  * Optimized for speed while maintaining randomness
@@ -17,20 +13,8 @@ export async function generateBetslip(
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 1000; // 1000ms max execution time
   
-  // Extract all hot selections with caching
-  const eventsHash = JSON.stringify(events.map(e => e.event_id)).slice(0, 20);
-  const cachedHotSelections = hotSelectionsCache.get(eventsHash);
-  
-  let hotSelections: HotSelection[];
-  if (cachedHotSelections && Date.now() - cachedHotSelections.timestamp < HOT_SELECTIONS_CACHE_DURATION) {
-    hotSelections = cachedHotSelections.selections;
-  } else {
-    hotSelections = getHotSelections(events);
-    hotSelectionsCache.set(eventsHash, {
-      selections: hotSelections,
-      timestamp: Date.now()
-    });
-  }
+  // Extract all hot selections
+  const hotSelections = getHotSelections(events);
   
   if (hotSelections.length === 0) {
     return null;

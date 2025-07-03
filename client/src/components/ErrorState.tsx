@@ -1,13 +1,12 @@
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { memo } from "react";
 
 interface ErrorStateProps {
   message: string;
   onRetry: () => void;
 }
 
-const ErrorState = memo(function ErrorState({ message, onRetry }: ErrorStateProps) {
+export default function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
     <Card className="mb-6 border-l-4 border-error">
       <CardContent className="p-5">
@@ -28,6 +27,4 @@ const ErrorState = memo(function ErrorState({ message, onRetry }: ErrorStateProp
       </CardContent>
     </Card>
   );
-});
-
-export default ErrorState;
+}

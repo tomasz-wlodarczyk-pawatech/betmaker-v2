@@ -3,7 +3,6 @@ import compression from "compression";
 import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { optimizeResponse, deduplicateRequests, monitorMemory } from "./performance";
 
 const app = express();
 
@@ -54,56 +53,12 @@ app.use("/assets", (req, res, next) => {
     req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)
   ) {
     res.set("Cache-Control", "public, max-age=31536000, immutable"); // 1 year
-    res.set("Expires", new Date(Date.now() + 31536000000).toUTCString());
   }
   next();
 });
-
-// Cache API responses for better performance
-const apiCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-app.use("/api", (req, res, next) => {
-  // Only cache GET requests
-  if (req.method !== "GET") {
-    return next();
-  }
-  
-  const cacheKey = req.originalUrl;
-  const cachedResponse = apiCache.get(cacheKey);
-  
-  if (cachedResponse && Date.now() - cachedResponse.timestamp < CACHE_DURATION) {
-    res.set("X-Cache", "HIT");
-    res.set("Cache-Control", "public, max-age=300"); // 5 minutes
-    return res.json(cachedResponse.data);
-  }
-  
-  // Override res.json to cache the response
-  const originalJson = res.json;
-  res.json = function(data) {
-    if (res.statusCode === 200) {
-      apiCache.set(cacheKey, {
-        data,
-        timestamp: Date.now()
-      });
-      res.set("X-Cache", "MISS");
-      res.set("Cache-Control", "public, max-age=300"); // 5 minutes
-    }
-    return originalJson.call(this, data);
-  };
-  
-  next();
-});
-
-// Apply performance optimizations
-app.use(optimizeResponse);
-app.use(deduplicateRequests);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Start memory monitoring
-setInterval(monitorMemory, 60000); // Monitor every minute
 
 app.use((req, res, next) => {
   const start = Date.now();

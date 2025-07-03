@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -9,14 +9,14 @@ interface OddsInputProps {
   disabled?: boolean;
 }
 
-const OddsInput = memo(function OddsInput({ 
+export default function OddsInput({ 
   targetOdds, 
   setTargetOdds, 
   onGenerate,
   disabled = false 
 }: OddsInputProps) {
-  // Memoize the formatted odds to avoid recalculation
-  const formattedOdds = useMemo(() => Math.round(targetOdds), [targetOdds]);
+  // Format the odds as a whole number
+  const formattedOdds = Math.round(targetOdds);
   
   // Handle slider change - convert slider value (2-1000) for better user experience
   const handleSliderChange = (values: number[]) => {
@@ -104,6 +104,4 @@ const OddsInput = memo(function OddsInput({
       </div>
     </div>
   );
-});
-
-export default OddsInput;
+}

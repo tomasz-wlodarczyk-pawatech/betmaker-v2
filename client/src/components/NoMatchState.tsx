@@ -1,6 +1,5 @@
 import { Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { memo, useMemo } from "react";
 
 interface NoMatchStateProps {
   targetOdds: number;
@@ -8,17 +7,14 @@ interface NoMatchStateProps {
   onTryHigher: () => void;
 }
 
-const NoMatchState = memo(function NoMatchState({ 
+export default function NoMatchState({ 
   targetOdds, 
   onTryLower, 
   onTryHigher 
 }: NoMatchStateProps) {
   
-  // Memoize expensive calculations
-  const { lowerOdds, higherOdds } = useMemo(() => ({
-    lowerOdds: Math.round(targetOdds * 0.65 * 100) / 100,
-    higherOdds: Math.round(targetOdds * 1.5 * 100) / 100
-  }), [targetOdds]);
+  const lowerOdds = Math.round(targetOdds * 0.65 * 100) / 100;
+  const higherOdds = Math.round(targetOdds * 1.5 * 100) / 100;
 
   return (
     <Card className="mb-6 border-l-4 border-accent">
@@ -49,6 +45,4 @@ const NoMatchState = memo(function NoMatchState({
       </CardContent>
     </Card>
   );
-});
-
-export default NoMatchState;
+}

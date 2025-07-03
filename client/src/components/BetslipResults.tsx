@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState, memo, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { generateBookingCode } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries.ts";
 
@@ -13,7 +13,7 @@ interface BetslipResultsProps {
   brandIdentifier: string;
 }
 
-const BetslipResults = memo(function BetslipResults({
+export default function BetslipResults({
   result,
   targetOdds,
   onRegenerate,
@@ -23,27 +23,15 @@ const BetslipResults = memo(function BetslipResults({
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: countries } = useCountries();
-  
-  // Memoize country data calculation
-  const countryData = useMemo(() => 
-    getCountryByBrand(countries, brandIdentifier), 
-    [countries, brandIdentifier]
-  );
-  
-  const domain = useMemo(() => 
-    countryData?.rootDomain || "betpawa.com.gh", 
-    [countryData]
-  );
+  const countryData = getCountryByBrand(countries, brandIdentifier);
+  const domain = countryData?.rootDomain || "betpawa.com.gh";
 
-  // Memoize selection IDs to prevent recalculation
-  const selectionIds = useMemo(() => 
-    result.selections.map((selection) => selection.id),
-    [result.selections]
-  );
-
-  const handleLoadBetslip = useCallback(async () => {
+  const handleLoadBetslip = async () => {
     try {
       setIsLoading(true);
+
+      // Extract selection IDs from the betslip result
+      const selectionIds = result.selections.map((selection) => selection.id);
 
       // Generate booking code from BetPawa API with country-specific URL
       const bookingData = await generateBookingCode(
@@ -82,7 +70,7 @@ const BetslipResults = memo(function BetslipResults({
     } finally {
       setIsLoading(false);
     }
-  }, [countryData, selectionIds, domain, brandIdentifier, toast]);
+  };
 
   return (
     <div className="mb-6">
@@ -147,6 +135,4 @@ const BetslipResults = memo(function BetslipResults({
       </div>
     </div>
   );
-});
-
-export default BetslipResults;
+}
