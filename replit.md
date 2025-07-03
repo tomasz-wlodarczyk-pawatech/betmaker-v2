@@ -91,10 +91,42 @@ The BetPawa Betslip Generator is a lightweight web application that allows users
 - **Caching**: Strategic caching for country data and API responses
 - **Bundle Size**: Tree shaking and modern JavaScript targeting
 
+## Performance Optimizations
+
+### Server-Side Optimizations
+- **Compression**: Gzip compression enabled with configurable levels and thresholds
+- **Security Headers**: Helmet.js for security headers and CSP configuration
+- **Caching**: Multi-layer caching strategy with 5-minute API cache and 1-year static asset cache
+- **Request Deduplication**: Prevents duplicate API calls for identical requests
+- **Memory Management**: Automatic memory monitoring and cache cleanup
+- **HTTP/2 Optimization**: Keep-alive connections and proper cache headers
+
+### Client-Side Optimizations
+- **Lazy Loading**: Components lazy-loaded to reduce initial bundle size
+- **Query Optimization**: TanStack Query with 5-minute stale time and structural sharing
+- **Font Preloading**: Roboto font preloaded for better rendering performance
+- **Performance Hooks**: Debounce, throttle, and expensive computation monitoring
+- **Bundle Splitting**: Manual chunk splitting for vendor libraries
+
+### Caching Strategy
+- **API Responses**: 5-minute server-side cache with X-Cache headers
+- **Static Assets**: 1-year cache for immutable assets (JS, CSS, fonts)
+- **Hot Selections**: 5-minute cache for processed betting data
+- **Countries Data**: Session storage with automatic cleanup
+
+### Build Optimizations
+- **Tree Shaking**: Automatic dead code elimination
+- **Minification**: Production builds use Terser with console removal
+- **Asset Optimization**: Hashed filenames for cache busting
+- **Modern JavaScript**: ES2020 target for smaller bundles
+
 ## Changelog
 
 ```
 Changelog:
+- July 03, 2025. Added comprehensive performance optimizations including compression, caching, lazy loading, and bundle optimization
+- July 03, 2025. Implemented Google Analytics tracking integration
+- July 03, 2025. Added window.parent.postMessage for booking code communication
 - July 01, 2025. Initial setup
 ```
 
