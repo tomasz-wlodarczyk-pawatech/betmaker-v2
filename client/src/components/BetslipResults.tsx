@@ -96,7 +96,7 @@ const BetslipResults = memo(function BetslipResults({
       <div className="mb-4 p-2 flex flex-row justify-center items-center gap-3 border-b border-[#E6E7E2]">
         <div className="bg-neutral-light rounded-md px-6 py-2">
           <div className="flex flex-col items-center justify-center">
-            <p className="text-sm text-neutral-dark">Actual Odds:</p>
+            <p className="text-sm text-neutral-dark">Odds:</p>
             <p className="text-base font-bold text-secondary">
               {result.totalOdds.toFixed(2)}
             </p>
