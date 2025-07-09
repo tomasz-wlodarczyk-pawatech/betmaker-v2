@@ -122,7 +122,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           {processing && (
             <ProcessingState
               progress={processingProgress}
-              message="Generating Suggestions"
+              message="Generating Selections""
             />
           )}
 
