@@ -97,7 +97,7 @@ const OddsInput = memo(function OddsInput({
             >
               <div className="flex justify-start items-start flex-grow-0 flex-shrink-0 relative">
                 <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
-                  Generate Betslip
+                  Generate Selections
                 </p>
               </div>
             </button>

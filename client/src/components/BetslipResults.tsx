@@ -76,11 +76,6 @@ const BetslipResults = memo(function BetslipResults({
 
         // Open in new window
         window.open(betPawaUrl, "_blank");
-
-        toast({
-          title: "Betslip loaded!",
-          description: `Booking code: ${bookingData.code} for ${brandIdentifier.toUpperCase()}`,
-        });
       }
     } catch (error) {
       console.error("Error loading betslip:", error);
@@ -138,7 +133,7 @@ const BetslipResults = memo(function BetslipResults({
               <span>Loading…</span>
             </>
           ) : (
-            <span>Load Betslip</span>
+            <span>Add to Betslip</span>
           )}
         </button>
       </div>
