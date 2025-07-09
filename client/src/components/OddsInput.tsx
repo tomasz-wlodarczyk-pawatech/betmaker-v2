@@ -9,20 +9,23 @@ interface OddsInputProps {
   disabled?: boolean;
 }
 
-const OddsInput = memo(function OddsInput({ 
-  targetOdds, 
-  setTargetOdds, 
+const OddsInput = memo(function OddsInput({
+  targetOdds,
+  setTargetOdds,
   onGenerate,
-  disabled = false 
+  disabled = false,
 }: OddsInputProps) {
   // Format the odds as a whole number
   const formattedOdds = Math.round(targetOdds);
-  
+
   // Handle slider change - convert slider value (2-1000) for better user experience
-  const handleSliderChange = useCallback((values: number[]) => {
-    const value = values[0];
-    setTargetOdds(value);
-  }, [setTargetOdds]);
+  const handleSliderChange = useCallback(
+    (values: number[]) => {
+      const value = values[0];
+      setTargetOdds(value);
+    },
+    [setTargetOdds],
+  );
 
   // Decrease odds by 1 (minimum 2)
   const decreaseOdds = useCallback(() => {
@@ -35,10 +38,10 @@ const OddsInput = memo(function OddsInput({
     const newValue = Math.min(1000, targetOdds + 1);
     setTargetOdds(newValue);
   }, [targetOdds, setTargetOdds]);
-  
+
   return (
     <div className="mb-6">
-      <div className="p-2">
+      <div className=" p-2 md:p-6 max-w-5xl">
         <div className="mb-4">
           <div className="text-[#252a2d] font-roboto text-lg font-bold leading-6">
             Select Odds for Betslip
@@ -47,26 +50,26 @@ const OddsInput = memo(function OddsInput({
         <div className="p-1 w-full">
           <div className="flex justify-center items-stretch mb-3 w-full h-12">
             {/* Left arrow */}
-            <button 
+            <button
               onClick={decreaseOdds}
               disabled={disabled || targetOdds <= 2}
-              className="flex justify-center items-center bg-[#f4f5f0] border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e6e7e2] transition-colors"
+              className="flex justify-center items-center bg-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-5 w-5 text-[#252a2d]" />
             </button>
-            
+
             {/* Center display */}
-            <div className="flex justify-center items-center bg-[#f4f5f0] border-l border-r border-[#e6e7e2] px-4 flex-grow text-center">
+            <div className="flex justify-center items-center bg-white  border-[#e6e7e2] px-4 flex-grow text-center">
               <p className="text-[#252a2d] font-roboto text-xl font-bold">
                 {formattedOdds}
               </p>
             </div>
-            
+
             {/* Right arrow */}
-            <button 
+            <button
               onClick={increaseOdds}
               disabled={disabled || targetOdds >= 1000}
-              className="flex justify-center items-center bg-[#f4f5f0] border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e6e7e2] transition-colors"
+              className="flex justify-center items-center bg-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed  transition-colors"
             >
               <ChevronRight className="h-5 w-5 text-[#252a2d]" />
             </button>
@@ -74,8 +77,8 @@ const OddsInput = memo(function OddsInput({
 
           {/* Slider */}
           <div className="mb-6">
-            <Slider 
-              value={[targetOdds]} 
+            <Slider
+              value={[targetOdds]}
               onValueChange={handleSliderChange}
               min={2}
               max={1000}

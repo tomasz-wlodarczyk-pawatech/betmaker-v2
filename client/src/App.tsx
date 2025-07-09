@@ -54,7 +54,7 @@ function Router() {
           <Route
             path="/"
             component={() => (
-              <div className="p-4 bg-destructive/10 border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
+              <div className="p-4 bg-[#F4F5F0] border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
                 <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
                 <p className="mb-4">
                   Please specify a valid brand identifier in the URL (e.g.,

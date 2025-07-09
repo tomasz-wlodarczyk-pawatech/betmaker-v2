@@ -13,6 +13,17 @@ interface BetslipResultsProps {
   brandIdentifier: string;
 }
 
+/**
+ * Layout strategy:
+ * ┌───────────── bg-white h-full flex-col ────────────┐
+ * │  HEADER (odds / selections summary)               │  <- static height
+ * │────────────────────────────────────────────────────│
+ * │  SCROLLABLE LIST (overflow‑y‑auto)                 │  <- grows & scrolls
+ * │────────────────────────────────────────────────────│
+ * │  STICKY FOOTER (Load Betslip)                      │  <- always visible
+ * └────────────────────────────────────────────────────┘
+ */
+
 const BetslipResults = memo(function BetslipResults({
   result,
   targetOdds,
@@ -23,19 +34,19 @@ const BetslipResults = memo(function BetslipResults({
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: countries } = useCountries();
-  
+
   // Memoize country data to avoid recalculation on every render
-  const countryData = useMemo(() => 
-    getCountryByBrand(countries, brandIdentifier), 
-    [countries, brandIdentifier]
+  const countryData = useMemo(
+    () => getCountryByBrand(countries, brandIdentifier),
+    [countries, brandIdentifier],
   );
-  
+
   const domain = countryData?.rootDomain || "betpawa.com.gh";
 
   // Memoize selection IDs to avoid recalculation
-  const selectionIds = useMemo(() => 
-    result.selections.map((selection) => selection.id), 
-    [result.selections]
+  const selectionIds = useMemo(
+    () => result.selections.map((selection) => selection.id),
+    [result.selections],
   );
 
   const handleLoadBetslip = useCallback(async () => {
@@ -50,12 +61,15 @@ const BetslipResults = memo(function BetslipResults({
 
       if (bookingData && bookingData.code) {
         // Send message to parent window with booking code
-        window.parent.postMessage({
-          type: "generated_booking_code",
-          bookingCode: bookingData.code,
-          brandIdentifier: brandIdentifier,
-          domain: domain
-        }, "*");
+        window.parent.postMessage(
+          {
+            type: "generated_booking_code",
+            bookingCode: bookingData.code,
+            brandIdentifier: brandIdentifier,
+            domain: domain,
+          },
+          "*",
+        );
 
         // Construct the URL with booking code and correct country domain
         const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
@@ -82,64 +96,51 @@ const BetslipResults = memo(function BetslipResults({
   }, [selectionIds, countryData, brandIdentifier, domain, toast]);
 
   return (
-    <div className="mb-6">
-      <div className="p-2">
-        <div className="mb-4">
-          <h2 className="text-[#252a2d] font-roboto text-lg font-bold leading-6">
-            Generated Betslip
-          </h2>
+    <div className="flex flex-col h-full bg-white">
+      {/* HEADER */}
+      <div className="mb-4 p-2 flex flex-row justify-center items-center gap-3 border-b border-[#E6E7E2]">
+        <div className="bg-neutral-light rounded-md px-6 py-2">
+          <div className="flex flex-col items-center justify-center">
+            <p className="text-sm text-neutral-dark">Actual Odds:</p>
+            <p className="text-base font-bold text-secondary">
+              {result.totalOdds.toFixed(2)}
+            </p>
+          </div>
         </div>
+        <div className="h-[26px] w-[1px] bg-[#E6E7E2]"></div>
+        <div className="bg-neutral-light rounded-md px-6 py-2">
+          <div className="flex flex-col items-center justify-center">
+            <p className="text-sm text-neutral-dark">Selections:</p>
+            <p className="text-base font-bold">{result.selections.length}</p>
+          </div>
+        </div>
+      </div>
 
-        <div className="mb-4">
-          <div className="bg-neutral-light rounded-md p-1 mb-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-dark">Actual Odds:</p>
-              <p className="text-base font-bold text-secondary">
-                {result.totalOdds.toFixed(2)}
-              </p>
-            </div>
-          </div>
-          <div className="bg-neutral-light rounded-md p-1 mb-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-dark">Selections:</p>
-              <p className="text-base font-bold">{result.selections.length}</p>
-            </div>
-          </div>
-        </div>
+      {/* SCROLLABLE LIST */}
+      <div className="flex-1 overflow-y-auto  ">
+        {result.selections.map((selection) => (
+          <BetslipSelection key={selection.id} selection={selection} />
+        ))}
+        {/* phantom padding so last item isn’t hidden under footer */}
+        <div className="h-10" />
+      </div>
 
-        <div className="mb-5">
-          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2">
-            <button
-              onClick={handleLoadBetslip}
-              disabled={isLoading}
-              className="flex justify-center items-center self-stretch flex-grow-0 flex-shrink-0 h-9 gap-2 px-3 bg-[#9ce800] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
-            >
-              <div className="flex justify-start items-start flex-grow-0 flex-shrink-0 relative">
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
-                      Loading...
-                    </p>
-                  </span>
-                ) : (
-                  <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
-                    Load Betslip
-                  </p>
-                )}
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <h3 className="font-medium mb-3">Betslip Selections</h3>
-          <div className="space-y-3">
-            {result.selections.map((selection) => (
-              <BetslipSelection key={selection.id} selection={selection} />
-            ))}
-          </div>
-        </div>
+      {/* STICKY FOOTER */}
+      <div className="sticky bottom-0 left-0 right-0 p-2 bg-white ">
+        <button
+          onClick={handleLoadBetslip}
+          disabled={isLoading}
+          className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-[#9ce800] text-[#252a2d] font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[#8BD700] transition-colors"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading…</span>
+            </>
+          ) : (
+            <span>Load Betslip</span>
+          )}
+        </button>
       </div>
     </div>
   );
