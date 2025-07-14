@@ -50,17 +50,19 @@ const BetslipResults = memo(function BetslipResults({
   );
 
   const handleLoadBetslip = useCallback(async () => {
+    const betslipWindow = window.open("about:blank");
+
     try {
       setIsLoading(true);
 
-      // Generate booking code from BetPawa API with country-specific URL
       const bookingData = await generateBookingCode(
         countryData?.countryIso2Code ?? "gh",
         selectionIds,
       );
 
       if (bookingData && bookingData.code) {
-        // Send message to parent window with booking code
+        const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
+
         window.parent.postMessage(
           {
             type: "generated_booking_code",
@@ -71,11 +73,13 @@ const BetslipResults = memo(function BetslipResults({
           "*",
         );
 
-        // Construct the URL with booking code and correct country domain
-        const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
-
-        // Open in new window
-        window.open(betPawaUrl, "_blank");
+        if (betslipWindow) {
+          betslipWindow.location.href = betPawaUrl;
+        }
+      } else {
+        if (betslipWindow) {
+          betslipWindow.close();
+        }
       }
     } catch (error) {
       console.error("Error loading betslip:", error);
@@ -85,6 +89,10 @@ const BetslipResults = memo(function BetslipResults({
           "There was a problem loading your betslip. Please try again.",
         variant: "destructive",
       });
+
+      if (betslipWindow) {
+        betslipWindow.close();
+      }
     } finally {
       setIsLoading(false);
     }
