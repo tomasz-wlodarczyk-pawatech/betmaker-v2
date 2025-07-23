@@ -98,7 +98,6 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   const handleSuggestedOdds = useCallback(
     (suggestedOdds: number) => {
       setTargetOdds(Math.round(suggestedOdds));
-      setTimeout(() => handleGenerateBetslip(), 100);
       window.parent.postMessage(
         {
           type: "betslip_generator_selections",
@@ -106,6 +105,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
         },
         "*",
       );
+      setTimeout(() => handleGenerateBetslip(), 100);
     },
     [handleGenerateBetslip],
   );
