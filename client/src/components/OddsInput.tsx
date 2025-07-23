@@ -31,12 +31,26 @@ const OddsInput = memo(function OddsInput({
   const decreaseOdds = useCallback(() => {
     const newValue = Math.max(2, targetOdds - 1);
     setTargetOdds(newValue);
+    window.parent.postMessage(
+      {
+        type: "betslip_generator_odds_change",
+        odds: newValue,
+      },
+      "*",
+    );
   }, [targetOdds, setTargetOdds]);
 
   // Increase odds by 1 (maximum 1000)
   const increaseOdds = useCallback(() => {
     const newValue = Math.min(1000, targetOdds + 1);
     setTargetOdds(newValue);
+    window.parent.postMessage(
+      {
+        type: "betslip_generator_odds_change",
+        odds: newValue,
+      },
+      "*",
+    );
   }, [targetOdds, setTargetOdds]);
 
   return (

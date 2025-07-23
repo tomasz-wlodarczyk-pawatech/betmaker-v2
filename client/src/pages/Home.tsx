@@ -99,6 +99,13 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     (suggestedOdds: number) => {
       setTargetOdds(Math.round(suggestedOdds));
       setTimeout(() => handleGenerateBetslip(), 100);
+      window.parent.postMessage(
+        {
+          type: "betslip_generator_selections",
+          odds: suggestedOdds,
+        },
+        "*",
+      );
     },
     [handleGenerateBetslip],
   );
