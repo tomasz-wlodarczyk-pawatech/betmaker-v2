@@ -67,6 +67,13 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     setError(false);
     setProcessing(true);
     setProcessingProgress(0);
+    window.parent.postMessage(
+      {
+        type: "betslip_generator_selections",
+        targetOdds: targetOdds,
+      },
+      "*",
+    );
 
     // Simulate progress
     const progressInterval = setInterval(() => {
@@ -98,13 +105,6 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   const handleSuggestedOdds = useCallback(
     (suggestedOdds: number) => {
       setTargetOdds(Math.round(suggestedOdds));
-      window.parent.postMessage(
-        {
-          type: "betslip_generator_selections",
-          odds: suggestedOdds,
-        },
-        "*",
-      );
       setTimeout(() => handleGenerateBetslip(), 100);
     },
     [handleGenerateBetslip],
