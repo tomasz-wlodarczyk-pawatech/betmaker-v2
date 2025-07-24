@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useCallback, useMemo, memo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { generateBookingCode } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries.ts";
 
@@ -32,7 +32,6 @@ const BetslipResults = memo(function BetslipResults({
 }: BetslipResultsProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const stickyRef = useRef<HTMLDivElement>(null);
   const { data: countries } = useCountries();
 
   // Memoize country data to avoid recalculation on every render
@@ -98,15 +97,6 @@ const BetslipResults = memo(function BetslipResults({
     }
   }, [selectionIds, countryData, brandIdentifier, domain, toast]);
 
-  useEffect(() => {
-    setTimeout(() => {
-      if (stickyRef.current) {
-        stickyRef.current.style.transform = "translateY(1px)";
-        stickyRef.current.style.transform = "translateY(0)";
-      }
-    }, 100);
-  }, []);
-
   return (
     <div className="flex flex-col min-h-screen bg-white ">
       {/* HEADER */}
@@ -129,7 +119,7 @@ const BetslipResults = memo(function BetslipResults({
       </div>
 
       {/* SCROLLABLE LIST */}
-      <div className="flex-1 overflow-y-auto  ">
+      <div className="flex-1   ">
         {result.selections.map((selection) => (
           <BetslipSelection key={selection.id} selection={selection} />
         ))}
@@ -140,7 +130,6 @@ const BetslipResults = memo(function BetslipResults({
       {/* STICKY FOOTER */}
       <div className="sticky bottom-0 left-0 right-0 p-2 bg-white ">
         <button
-          ref={stickyRef}
           onClick={handleLoadBetslip}
           disabled={isLoading}
           className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-[#9ce800] text-[#252a2d] font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[#8BD700] transition-colors"
