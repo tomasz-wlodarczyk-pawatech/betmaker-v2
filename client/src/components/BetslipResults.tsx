@@ -99,7 +99,7 @@ const BetslipResults = memo(function BetslipResults({
   }, [selectionIds, countryData, brandIdentifier, domain, toast]);
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col min-h-screen bg-white ">
       {/* HEADER */}
       <div className="mb-4 p-2 flex flex-row justify-center items-center gap-3 border-b border-[#E6E7E2]">
         <div className="bg-neutral-light rounded-md px-6 py-2">
