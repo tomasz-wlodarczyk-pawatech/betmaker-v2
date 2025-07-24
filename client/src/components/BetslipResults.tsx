@@ -128,7 +128,7 @@ const BetslipResults = memo(function BetslipResults({
       </div>
 
       {/* STICKY FOOTER */}
-      <div className="sticky bottom-[5px] left-0 right-0 p-2 bg-white ">
+      <div className="sticky bottom-0 left-0 right-0 p-2 bg-white ">
         <button
           onClick={handleLoadBetslip}
           disabled={isLoading}
