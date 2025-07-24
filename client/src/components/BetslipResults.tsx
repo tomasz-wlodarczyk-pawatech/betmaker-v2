@@ -101,8 +101,8 @@ const BetslipResults = memo(function BetslipResults({
   useEffect(() => {
     setTimeout(() => {
       if (stickyRef.current) {
-        stickyRef.current.style.transform = 'translateY(1px)';
-        stickyRef.current.style.transform = 'translateY(0)';
+        stickyRef.current.style.transform = "translateY(1px)";
+        stickyRef.current.style.transform = "translateY(0)";
       }
     }, 100);
   }, []);
@@ -140,6 +140,7 @@ const BetslipResults = memo(function BetslipResults({
       {/* STICKY FOOTER */}
       <div className="sticky bottom-0 left-0 right-0 p-2 bg-white ">
         <button
+          ref={stickyRef}
           onClick={handleLoadBetslip}
           disabled={isLoading}
           className="flex w-full h-10 items-center justify-center gap-2 rounded-md bg-[#9ce800] text-[#252a2d] font-bold uppercase disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[#8BD700] transition-colors"
