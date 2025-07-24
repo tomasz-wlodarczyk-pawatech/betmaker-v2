@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import BetslipSelection from "@/components/BetslipSelection";
 import { BetSlipResult } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useCallback, useMemo, memo } from "react";
+import { useState, useCallback, useMemo, memo, useEffect, useRef } from "react";
 import { generateBookingCode } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries.ts";
 
@@ -32,7 +32,7 @@ const BetslipResults = memo(function BetslipResults({
 }: BetslipResultsProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
+  const stickyRef = useRef<HTMLDivElement>(null);
   const { data: countries } = useCountries();
 
   // Memoize country data to avoid recalculation on every render
@@ -97,6 +97,15 @@ const BetslipResults = memo(function BetslipResults({
       setIsLoading(false);
     }
   }, [selectionIds, countryData, brandIdentifier, domain, toast]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (stickyRef.current) {
+        stickyRef.current.style.transform = 'translateY(1px)';
+        stickyRef.current.style.transform = 'translateY(0)';
+      }
+    }, 100);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-white ">
