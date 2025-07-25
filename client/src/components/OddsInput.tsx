@@ -56,8 +56,8 @@ const OddsInput = memo(function OddsInput({
   return (
     <div className="mb-6">
       <div className=" max-w-5xl">
-        <div className="mb-4">
-          <div className="text-[#252a2d] pl-1 font-roboto text-lg font-bold leading-6">
+        <div className="mb-4 ml-1">
+          <div className="text-[#252a2d]  font-roboto text-lg font-bold leading-6">
             Select Odds for Betslip
           </div>
         </div>
