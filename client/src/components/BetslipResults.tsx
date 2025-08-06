@@ -68,7 +68,7 @@ const BetslipResults = memo(function BetslipResults({
           },
           "*",
         );
-        window.location.href = betPawaUrl;
+        window.top.location.href = betPawaUrl;
       }
     } catch (error) {
       console.error("Error loading betslip:", error);
