@@ -68,7 +68,7 @@ const BetslipResults = memo(function BetslipResults({
           },
           "*",
         );
-        window.location.href = betPawaUrl;
+        window.parent.location.href = betPawaUrl;
       }
     } catch (error) {
       console.error("Error loading betslip:", error);
@@ -78,7 +78,6 @@ const BetslipResults = memo(function BetslipResults({
           "There was a problem loading your betslip. Please try again.",
         variant: "destructive",
       });
-
     } finally {
       setIsLoading(false);
     }
