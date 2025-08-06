@@ -15,7 +15,8 @@ function CountryValidator({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: countries, isLoading, error } = useCountries();
 
-  const brandIdentifier = location.split("/")[1];
+  const urlParams = new URLSearchParams(window.location.search);
+  const brandIdentifier = urlParams.get('brand');
 
   if (isLoading) {
     return <div className="p-4">Loading...</div>;
@@ -31,13 +32,28 @@ function CountryValidator({ children }: { children: React.ReactNode }) {
 
   if (!brandIdentifier || !getCountryByBrand(countries, brandIdentifier)) {
     return (
-      <Suspense>
-        <NotFound />
-      </Suspense>
+      <div className="p-4 bg-[#F4F5F0] border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
+        <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
+        <p className="mb-4">
+          Please specify a valid brand identifier in the URL parameter (e.g.,
+          ?brand=betpawa-uganda, ?brand=betpawa-gh, etc.)
+        </p>
+        <p className="text-sm">
+          Supported brand identifiers:{" "}
+          {countries?.map((c) => c.brandIdentifier).join(", ")}
+        </p>
+      </div>
     );
   }
 
   return <>{children}</>;
+}
+
+function BrandBasedHome() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const brandIdentifier = urlParams.get('brand');
+  
+  return <Home brandIdentifier={brandIdentifier || ''} />;
 }
 
 function Router() {
@@ -51,28 +67,10 @@ function Router() {
     <Layout>
       <Suspense>
         <Switch>
-          <Route
-            path="/"
-            component={() => (
-              <div className="p-4 bg-[#F4F5F0] border border-destructive text-destructive rounded-md max-w-md mx-auto mt-10">
-                <h1 className="text-xl font-bold mb-2">Wrong configuration</h1>
-                <p className="mb-4">
-                  Please specify a valid brand identifier in the URL (e.g.,
-                  /betpawa-gh, /betpawa-ng, etc.)
-                </p>
-                <p className="text-sm">
-                  Supported brand identifiers:{" "}
-                  {countries.map((c) => c.brandIdentifier).join(", ")}
-                </p>
-              </div>
-            )}
-          />
-          <Route path="/:brandIdentifier">
-            {(params) => (
-              <CountryValidator>
-                <Home brandIdentifier={params.brandIdentifier} />
-              </CountryValidator>
-            )}
+          <Route path="/">
+            <CountryValidator>
+              <BrandBasedHome />
+            </CountryValidator>
           </Route>
           <Route component={NotFound} />
         </Switch>

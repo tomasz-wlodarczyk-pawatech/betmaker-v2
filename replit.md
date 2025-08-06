@@ -40,7 +40,7 @@ The BetPawa Betslip Generator is a lightweight web application that allows users
   - Target odds ±15% tolerance
 
 ### Multi-Country Support
-- **Dynamic Routing**: Country-specific URLs (e.g., `/gh/`, `/ng/`)
+- **Parameter-Based Routing**: Brand identification via URL parameters (e.g., `?brand=betpawa-uganda`, `?brand=betpawa-gh`)
 - **Localization**: Country-specific domains and API endpoints
 - **Validation**: Real-time country code validation with fallback handling
 
@@ -116,6 +116,7 @@ The BetPawa Betslip Generator is a lightweight web application that allows users
 Changelog:
 - July 01, 2025. Initial setup
 - January 03, 2025. Comprehensive frontend performance optimization
+- August 06, 2025. Changed brand identification from URL path routing to URL parameters (e.g., ?brand=betpawa-uganda)
 ```
 
 ## User Preferences
