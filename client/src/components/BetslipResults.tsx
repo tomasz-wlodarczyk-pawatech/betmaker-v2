@@ -57,6 +57,7 @@ const BetslipResults = memo(function BetslipResults({
         selectionIds,
         brandIdentifier,
       );
+      console.log(bookingData);
       if (bookingData && bookingData.bookingCode && bookingData.domain) {
         console.log(bookingData);
         const betPawaUrl = `https://${bookingData.domain}/?bookingCode=${bookingData.bookingCode}`;
@@ -64,15 +65,13 @@ const BetslipResults = memo(function BetslipResults({
         window.parent.postMessage(
           {
             type: "generated_booking_code",
-            bookingCode: bookingData.bookingCode,
+            bookingCode: bookingData.domain,
             brandIdentifier: brandIdentifier,
             domain: bookingData.domain,
           },
           "*",
         );
-        if (betslipWindow) {
-          betslipWindow.location.href = betPawaUrl;
-        }
+        if (betslipWindow) betslipWindow.location.href = betPawaUrl;
       } else {
         if (betslipWindow) {
           betslipWindow.close();
