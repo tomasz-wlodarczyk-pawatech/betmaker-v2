@@ -2,17 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import axios from "axios";
-import { Response } from "express";
 
-const COUNTRIES_CACHE_KEY = "betpawa_countries";
-const COUNTRIES_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-async function fetchCountriesFromApi(): Promise<any> {
-  const response = await axios.get(
-    "https://www.betpawa.com/api/brand/v1/countries/betpawa",
-  );
-  return response.data;
-}
 import {
   generateBetslipSchema,
   generateBookingCodeSchema,
@@ -80,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { targetOdds, brandIdentifier } = generateBetslipSchema.parse(
         req.body,
       );
-
+      console.log(brandIdentifier);
       // Fetch events data
       const response = await axios.get(
         `https://pawagate.replit.app/api/sportsbook-plus/v1/events/popular`,
@@ -95,6 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Check if the response has the new format with status and data fields
+      console.log(response.data);
       let events;
       if (
         response.data.status === "success" &&
@@ -105,6 +96,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle legacy format or unexpected response
         events = Array.isArray(response.data) ? response.data : [];
       }
+
+      console.log(events);
 
       // Generate betslip
       const betslip = await generateBetslip(events, targetOdds);
@@ -126,60 +119,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to generate betslip" });
     }
   });
-
-  // Mapping of country codes to BetPawa API brand names
-  const COUNTRY_BRANDS: Record<string, string> = {
-    ao: "betpawa-angola",
-    bj: "betpawa-benin",
-    bw: "betpawa-botswana",
-    cd: "betpawa-drc",
-    cf: "betpawa-car",
-    cg: "betpawa-congo",
-    ci: "betpawa-ivory-coast",
-    cm: "betpawa-cameroon",
-    ga: "betpawa-gabon",
-    gh: "betpawa-ghana", // default
-    ke: "betpawa-kenya",
-    lr: "betpawa-liberia",
-    ls: "betpawa-lesotho",
-    mw: "betpawa-malawi",
-    mz: "betpawa-mozambique",
-    ng: "betpawa-nigeria",
-    rw: "betpawa-rwanda",
-    sl: "betpawa-sierra-leone",
-    sn: "betpawa-senegal",
-    tz: "betpawa-tanzania",
-    ug: "betpawa-uganda",
-    zm: "betpawa-zambia",
-    zw: "betpawa-zimbabwe",
-  };
-
-  // Mapping of country codes to BetPawa domains
-  const COUNTRY_DOMAINS: Record<string, string> = {
-    ao: "betpawa.ao",
-    bj: "betpawa.bj",
-    bw: "betpawa.co.bw",
-    cd: "betpawa.cd",
-    cf: "betpawa.cf",
-    cg: "betpawa.cg",
-    ci: "betpawa.ci",
-    cm: "betpawa.cm",
-    ga: "betpawa.ga",
-    gh: "betpawa.com.gh", // default
-    ke: "betpawa.co.ke",
-    lr: "betpawa.com.lr",
-    ls: "betpawa.co.ls",
-    mw: "betpawa.mw",
-    mz: "betpawa.co.mz",
-    ng: "betpawa.ng",
-    rw: "betpawa.rw",
-    sl: "betpawa.sl",
-    sn: "betpawa.sn",
-    tz: "betpawa.co.tz",
-    ug: "betpawa.ug",
-    zm: "betpawa.co.zm",
-    zw: "betpawa.co.zw",
-  };
 
   // Country-specific API endpoint to generate BetPawa booking code
   app.post("/api/:country/booking/generate", async (req, res) => {

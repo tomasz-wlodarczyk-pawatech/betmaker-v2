@@ -70,9 +70,7 @@ const BetslipResults = memo(function BetslipResults({
           },
           "*",
         );
-        if (betslipWindow) {
-          betslipWindow.location.href = betPawaUrl;
-        }
+        window.location.href = betPawaUrl;
       } else {
         if (betslipWindow) {
           betslipWindow.close();
