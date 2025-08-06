@@ -38,13 +38,15 @@ export async function generateBetslip(
 export async function generateBookingCode(
   country: string,
   selectionIds: string[],
-): Promise<{ code: string }> {
+  brandIdentifier: string,
+): Promise<{ bookingCode: string; domain: string }> {
   try {
     const response = await apiRequest(
       "POST",
       `${API_BASE}/${country}/booking/generate`,
       {
         selectionIds,
+        brandIdentifier,
       },
     );
 

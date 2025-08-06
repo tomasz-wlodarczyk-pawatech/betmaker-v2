@@ -16,7 +16,6 @@ export interface Event {
   competition: string;
   event_name: string;
   event_id: string;
-  scoreboard: any[];
   markets: EventMarket[];
 }
 

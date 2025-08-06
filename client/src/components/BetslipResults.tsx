@@ -40,8 +40,6 @@ const BetslipResults = memo(function BetslipResults({
     [countries, brandIdentifier],
   );
 
-  const domain = countryData?.rootDomain || "betpawa.com.gh";
-
   // Memoize selection IDs to avoid recalculation
   const selectionIds = useMemo(
     () => result.selections.map((selection) => selection.id),
@@ -57,21 +55,21 @@ const BetslipResults = memo(function BetslipResults({
       const bookingData = await generateBookingCode(
         countryData?.countryIso2Code ?? "gh",
         selectionIds,
+        brandIdentifier,
       );
-
-      if (bookingData && bookingData.code) {
-        const betPawaUrl = `https://www.${domain}/?bookingCode=${bookingData.code}`;
+      if (bookingData && bookingData.bookingCode && bookingData.domain) {
+        console.log(bookingData);
+        const betPawaUrl = `https://${bookingData.domain}/?bookingCode=${bookingData.bookingCode}`;
 
         window.parent.postMessage(
           {
             type: "generated_booking_code",
-            bookingCode: bookingData.code,
+            bookingCode: bookingData.bookingCode,
             brandIdentifier: brandIdentifier,
-            domain: domain,
+            domain: bookingData.domain,
           },
           "*",
         );
-
         if (betslipWindow) {
           betslipWindow.location.href = betPawaUrl;
         }
@@ -95,7 +93,7 @@ const BetslipResults = memo(function BetslipResults({
     } finally {
       setIsLoading(false);
     }
-  }, [selectionIds, countryData, brandIdentifier, domain, toast]);
+  }, [selectionIds, countryData, brandIdentifier, toast]);
 
   return (
     <div className="flex flex-col min-h-screen bg-white ">

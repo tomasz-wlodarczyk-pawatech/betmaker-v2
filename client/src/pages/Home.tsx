@@ -1,22 +1,13 @@
-import {
-  useState,
-  useEffect,
-  lazy,
-  Suspense,
-  useCallback,
-  useMemo,
-  memo,
-} from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import OddsInput from "@/components/OddsInput";
 import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
-
+import BetslipResults from "@/components/BetslipResults";
+import ErrorState from "@/components/ErrorState";
+import NoMatchState from "@/components/NoMatchState";
+import ProcessingState from "@/components/ProcessingState";
 // Lazy loaded components
-const BetslipResults = lazy(() => import("@/components/BetslipResults"));
-const ErrorState = lazy(() => import("@/components/ErrorState"));
-const NoMatchState = lazy(() => import("@/components/NoMatchState"));
-const ProcessingState = lazy(() => import("@/components/ProcessingState"));
 
 const getRandomOdds = (min: number, max: number) =>
   Math.round(Math.random() * (max - min) + min);
@@ -111,7 +102,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   );
 
   return (
-    <Suspense>
+    <>
       {invalidBrand ? (
         <ErrorState
           message={`Invalid brand identifier: ${brandIdentifier}. Supported brands: ${supportedBrandIdentifiers.join(", ")}`}
@@ -158,7 +149,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           )}
         </div>
       )}
-    </Suspense>
+    </>
   );
 });
 

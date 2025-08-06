@@ -1,4 +1,12 @@
-import { pgTable, text, serial, integer, boolean, numeric, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  numeric,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,7 +21,9 @@ export const betslips = pgTable("betslips", {
 // Define the Selection table
 export const selections = pgTable("selections", {
   id: serial("id").primaryKey(),
-  betslipId: integer("betslip_id").notNull().references(() => betslips.id),
+  betslipId: integer("betslip_id")
+    .notNull()
+    .references(() => betslips.id),
   selectionId: text("selection_id").notNull(),
   eventId: text("event_id").notNull(),
   eventName: text("event_name").notNull(),
@@ -51,11 +61,15 @@ export type Selection = typeof selections.$inferSelect;
 // Additional types for the API
 export const generateBetslipSchema = z.object({
   targetOdds: z.number().min(2).max(1000),
+  brandIdentifier: z.string(),
 });
 
 export const generateBookingCodeSchema = z.object({
   selectionIds: z.array(z.string()),
+  brandIdentifier: z.string()
 });
 
 export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
-export type GenerateBookingCodeRequest = z.infer<typeof generateBookingCodeSchema>;
+export type GenerateBookingCodeRequest = z.infer<
+  typeof generateBookingCodeSchema
+>;

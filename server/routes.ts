@@ -63,48 +63,6 @@ function getCountryCode(req: Request): string | null {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Proxy endpoint for fetching country data
-  app.get("/api/countries", async (_req, res: Response) => {
-    try {
-      const data = await fetchCountriesFromApi();
-      res.json(data);
-    } catch (error) {
-      console.error("Error fetching countries:", error);
-      res.status(500).json({ message: "Failed to fetch country data" });
-    }
-  });
-  // Country-specific API endpoint to proxy the events data
-  app.get("/api/:country/events/popular", async (req, res) => {
-    try {
-      const countryCode = getCountryCode(req);
-
-      if (!countryCode) {
-        return res.status(400).json({
-          message:
-            "Invalid country code. Supported countries: " +
-            SUPPORTED_COUNTRIES.join(", "),
-        });
-      }
-
-      const response = await axios.get(
-        `https://pawa-api.replit.app/${countryCode}/events/popular`,
-      );
-
-      // Check if the response has the new format with status and data fields
-      if (
-        response.data.status === "success" &&
-        Array.isArray(response.data.data)
-      ) {
-        // Return the data array directly for backward compatibility
-        res.json(response.data.data);
-      } else {
-        // Pass through the original response for backward compatibility
-        res.json(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching events:", error);
-      res.status(500).json({ message: "Failed to fetch events data" });
-    }
-  });
 
   // Country-specific API endpoint to generate a betslip
   app.post("/api/:country/betslip/generate", async (req, res) => {
@@ -119,11 +77,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { targetOdds } = generateBetslipSchema.parse(req.body);
+      const { targetOdds, brandIdentifier } = generateBetslipSchema.parse(
+        req.body,
+      );
 
       // Fetch events data
       const response = await axios.get(
-        `https://pawa-api.replit.app/${countryCode}/events/popular`,
+        `https://pawagate.replit.app/api/sportsbook-plus/v1/events/popular`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-MiniApp-Env": "staging",
+            "x-pawa-brand": `${brandIdentifier}`,
+            Origin: "https://bet-maker-stg.replit.app",
+          },
+        },
       );
 
       // Check if the response has the new format with status and data fields
@@ -226,26 +194,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { selectionIds } = generateBookingCodeSchema.parse(req.body);
+      const { selectionIds, brandIdentifier } = generateBookingCodeSchema.parse(
+        req.body,
+      );
 
-      // Get the correct domain and brand for this country
-      const domain = COUNTRY_DOMAINS[countryCode] || "betpawa.com.gh";
-      const brand = COUNTRY_BRANDS[countryCode] || "betpawa-ghana";
-
-      // Call BetPawa API to generate booking code with country-specific headers
-      const response = await axios.post(
-        `https://www.${domain}/api/sportsbook/v2/booking-number`,
-        { selections: selectionIds },
+      const responseDomain = await axios.get(
+        `https://pawagate.replit.app/api/brand/v1/countries/betpawa`,
         {
           headers: {
             "Content-Type": "application/json",
-            "x-pawa-brand": brand,
-            "x-pawa-language": "en",
+            "X-MiniApp-Env": "staging",
+            "x-pawa-brand": `${brandIdentifier}`,
+            Origin: "https://bet-maker-stg.replit.app",
           },
         },
       );
 
-      res.json(response.data);
+      const domainData = responseDomain.data.find(
+        (e: any) => e.brandIdentifier === brandIdentifier,
+      ).rootDomain;
+
+      const response = await axios.post(
+        `https://pawagate.replit.app/api/sportsbook/v2/booking-number`,
+        { selections: selectionIds },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-MiniApp-Env": "staging",
+            "x-pawa-brand": brandIdentifier,
+            "x-pawa-language": "en",
+            Origin: "https://bet-maker-stg.replit.app",
+          },
+        },
+      );
+
+      return res.json({
+        bookingCode: response.data.code,
+        domain: domainData,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res
@@ -255,49 +241,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.error("Error generating booking code:", error);
 
-      // Handle different types of errors
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status || 500;
-        const message =
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to generate booking code";
-        return res.status(status).json({ message });
-      }
-
-      res.status(500).json({ message: "Failed to generate booking code" });
-    }
-  });
-
-  // Legacy endpoint for backward compatibility
-  app.post("/api/booking/generate", async (req, res) => {
-    try {
-      const { selectionIds } = generateBookingCodeSchema.parse(req.body);
-
-      // Use Ghana as default for the legacy endpoint
-      const response = await axios.post(
-        "https://www.betpawa.com.gh/api/sportsbook/v2/booking-number",
-        { selections: selectionIds },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "x-pawa-brand": "betpawa-ghana",
-            "x-pawa-language": "en",
-          },
-        },
-      );
-
-      res.json(response.data);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res
-          .status(400)
-          .json({ message: "Invalid input", errors: error.errors });
-      }
-
-      console.error("Error generating booking code:", error);
-
-      // Handle different types of errors
       if (axios.isAxiosError(error)) {
         const status = error.response?.status || 500;
         const message =
