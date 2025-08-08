@@ -47,8 +47,6 @@ const BetslipResults = memo(function BetslipResults({
   );
 
   const handleLoadBetslip = useCallback(async () => {
-    const betslipWindow = window.open("about:blank");
-
     try {
       setIsLoading(true);
 
@@ -71,11 +69,13 @@ const BetslipResults = memo(function BetslipResults({
           },
           "*",
         );
-        if (betslipWindow) betslipWindow.location.href = betPawaUrl;
-      } else {
-        if (betslipWindow) {
-          betslipWindow.close();
-        }
+        window.parent.postMessage(
+          {
+            type: "close",
+            params: { redirectUrl: betPawaUrl },
+          },
+          "*",
+        );
       }
     } catch (error) {
       console.error("Error loading betslip:", error);
