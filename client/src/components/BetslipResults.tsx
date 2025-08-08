@@ -69,10 +69,11 @@ const BetslipResults = memo(function BetslipResults({
           },
           "*",
         );
-        window.parent.postMessage(
+
+        window.parent?.postMessage(
           {
             type: "close",
-            params: { redirectUrl: betPawaUrl },
+            payload: { redirectUrl: betPawaUrl },
           },
           "*",
         );
@@ -85,10 +86,6 @@ const BetslipResults = memo(function BetslipResults({
           "There was a problem loading your betslip. Please try again.",
         variant: "destructive",
       });
-
-      if (betslipWindow) {
-        betslipWindow.close();
-      }
     } finally {
       setIsLoading(false);
     }
