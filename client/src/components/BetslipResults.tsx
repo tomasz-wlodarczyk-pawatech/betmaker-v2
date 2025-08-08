@@ -70,7 +70,7 @@ const BetslipResults = memo(function BetslipResults({
           "*",
         );
 
-        window.parent?.postMessage(
+        window.top?.postMessage(
           {
             type: "close",
             payload: { redirectUrl: betPawaUrl },
