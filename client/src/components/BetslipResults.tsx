@@ -55,17 +55,17 @@ const BetslipResults = memo(function BetslipResults({
         selectionIds,
         brandIdentifier,
       );
-      console.log(bookingData);
+
       if (bookingData && bookingData.bookingCode && bookingData.domain) {
         console.log(bookingData);
-        const betPawaUrl = `https://${bookingData.domain}/?bookingCode=${bookingData.bookingCode}`;
+        const betPawaUrl = `http://gh.staging.betpawa.local:3000/?bookingCode=${bookingData.bookingCode}`;
 
         window.parent.postMessage(
           {
             type: "generated_booking_code",
-            bookingCode: bookingData.domain,
+            bookingCode: bookingData.bookingCode,
             brandIdentifier: brandIdentifier,
-            domain: bookingData.domain,
+            domain: "http://gh.staging.betpawa.local:3000",
           },
           "*",
         );

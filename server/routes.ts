@@ -79,7 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "Content-Type": "application/json",
             "X-MiniApp-Env": "staging",
             "x-pawa-brand": `${brandIdentifier}`,
-            Origin: "https://bet-maker-stg.replit.app",
+            Origin:
+              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
           },
         },
       );
@@ -144,10 +145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "Content-Type": "application/json",
             "X-MiniApp-Env": "staging",
             "x-pawa-brand": `${brandIdentifier}`,
-            Origin: "https://bet-maker-stg.replit.app",
+            Origin:
+              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
           },
         },
       );
+      console.log(responseDomain.data);
 
       const domainData = responseDomain.data.find(
         (e: any) => e.brandIdentifier === brandIdentifier,
@@ -162,14 +165,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "X-MiniApp-Env": "staging",
             "x-pawa-brand": brandIdentifier,
             "x-pawa-language": "en",
-            Origin: "https://bet-maker-stg.replit.app",
+            Origin:
+              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
           },
         },
       );
 
       return res.json({
         bookingCode: response.data.code,
-        domain: domainData,
+        domain: "http://gh.staging.betpawa.local:3000",
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
