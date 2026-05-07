@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Toaster } from "@/components/ui/toaster";
 
 interface LayoutProps {
   children: ReactNode;
@@ -7,12 +6,25 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F4F5F0]">
-      <main className="flex-grow  max-w-5xl container mx-auto">
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--colors-background-default)",
+      }}
+    >
+      <main
+        style={{
+          flex: "1 1 auto",
+          width: "100%",
+          maxWidth: "64rem",
+          margin: "0 auto",
+          padding: "1rem",
+        }}
+      >
         {children}
       </main>
-
-      <Toaster />
     </div>
   );
 }

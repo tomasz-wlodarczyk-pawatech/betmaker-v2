@@ -1,6 +1,6 @@
 import { useCallback, memo } from "react";
-import { Slider } from "@/components/ui/slider";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button, IconButton, SectionHeader } from "@aliengain/components";
+import { IconChevronLeft, IconChevronRight } from "@aliengain/icons";
 
 interface OddsInputProps {
   targetOdds: number;
@@ -15,109 +15,103 @@ const OddsInput = memo(function OddsInput({
   onGenerate,
   disabled = false,
 }: OddsInputProps) {
-  // Format the odds as a whole number
   const formattedOdds = Math.round(targetOdds);
 
-  // Handle slider change - convert slider value (2-1000) for better user experience
   const handleSliderChange = useCallback(
-    (values: number[]) => {
-      const value = values[0];
-      setTargetOdds(value);
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTargetOdds(Number(e.target.value));
     },
     [setTargetOdds],
   );
 
-  // Decrease odds by 1 (minimum 2)
   const decreaseOdds = useCallback(() => {
     const newValue = Math.max(2, targetOdds - 1);
     setTargetOdds(newValue);
     window.parent.postMessage(
-      {
-        type: "betslip_generator_odds_change",
-        odds: newValue,
-      },
+      { type: "betslip_generator_odds_change", odds: newValue },
       "*",
     );
   }, [targetOdds, setTargetOdds]);
 
-  // Increase odds by 1 (maximum 1000)
   const increaseOdds = useCallback(() => {
     const newValue = Math.min(1000, targetOdds + 1);
     setTargetOdds(newValue);
     window.parent.postMessage(
-      {
-        type: "betslip_generator_odds_change",
-        odds: newValue,
-      },
+      { type: "betslip_generator_odds_change", odds: newValue },
       "*",
     );
   }, [targetOdds, setTargetOdds]);
 
   return (
-    <div className="mb-6">
-      <div className=" max-w-5xl">
-        <div className="mb-4 ml-1">
-          <div className="text-[#252a2d]  font-roboto text-lg font-bold leading-6">
-            Select Odds for Betslip
-          </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <SectionHeader>Select Odds for Betslip</SectionHeader>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          background: "var(--colors-background-secondary)",
+          borderRadius: "0.75rem",
+          border: "1px solid var(--colors-border-default)",
+          padding: "0.5rem",
+        }}
+      >
+        <IconButton
+          aria-label="Decrease odds"
+          icon={<IconChevronLeft size="md" />}
+          variant="tonal"
+          buttonStyle="circle"
+          size="default"
+          onClick={decreaseOdds}
+          disabled={disabled || targetOdds <= 2}
+        />
+
+        <div
+          style={{
+            flex: 1,
+            textAlign: "center",
+            fontSize: "1.5rem",
+            fontWeight: 700,
+            lineHeight: "2rem",
+            color: "var(--colors-text-primary)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formattedOdds}
         </div>
-        <div className="p-1 w-full">
-          <div className="flex justify-center items-stretch mb-3 w-full h-12">
-            {/* Left arrow */}
-            <button
-              onClick={decreaseOdds}
-              disabled={disabled || targetOdds <= 2}
-              className="flex justify-center items-center bg-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 text-[#252a2d]" />
-            </button>
 
-            {/* Center display */}
-            <div className="flex justify-center items-center bg-white  border-[#e6e7e2] px-4 flex-grow text-center">
-              <p className="text-[#252a2d] font-roboto text-xl font-bold">
-                {formattedOdds}
-              </p>
-            </div>
-
-            {/* Right arrow */}
-            <button
-              onClick={increaseOdds}
-              disabled={disabled || targetOdds >= 1000}
-              className="flex justify-center items-center bg-white border-0 px-2 disabled:opacity-50 disabled:cursor-not-allowed  transition-colors"
-            >
-              <ChevronRight className="h-5 w-5 text-[#252a2d]" />
-            </button>
-          </div>
-
-          {/* Slider */}
-          <div className="mb-6">
-            <Slider
-              value={[targetOdds]}
-              onValueChange={handleSliderChange}
-              min={2}
-              max={1000}
-              step={1}
-              disabled={disabled}
-              className="w-full"
-            />
-          </div>
-
-          {/* Generate Button */}
-          <div className="flex flex-col justify-start items-start self-stretch flex-grow-0 flex-shrink-0 gap-2">
-            <button
-              onClick={onGenerate}
-              disabled={disabled}
-              className="flex justify-center items-center self-stretch flex-grow-0 flex-shrink-0 h-9 gap-2 px-3 bg-[#9ce800] w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8BD700] transition-colors"
-            >
-              <div className="flex justify-start items-start flex-grow-0 flex-shrink-0 relative">
-                <p className="flex-grow-0 flex-shrink-0 text-sm font-bold text-left uppercase text-[#252a2d]">
-                  Generate Selections
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
+        <IconButton
+          aria-label="Increase odds"
+          icon={<IconChevronRight size="md" />}
+          variant="tonal"
+          buttonStyle="circle"
+          size="default"
+          onClick={increaseOdds}
+          disabled={disabled || targetOdds >= 1000}
+        />
       </div>
+
+      <input
+        type="range"
+        className="odds-range"
+        min={2}
+        max={1000}
+        step={1}
+        value={targetOdds}
+        onChange={handleSliderChange}
+        disabled={disabled}
+        aria-label="Target odds"
+      />
+
+      <Button
+        title="Generate Selections"
+        variant="primary"
+        size="lg"
+        fullWidth
+        onClick={onGenerate}
+        disabled={disabled}
+      />
     </div>
   );
 });
