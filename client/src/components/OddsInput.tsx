@@ -86,37 +86,51 @@ const OddsInput = memo(function OddsInput({
   );
 
   const inputValue = inputDraft ?? String(formattedOdds);
+  const sliderPercent =
+    ((targetOdds - MIN_ODDS) / (MAX_ODDS - MIN_ODDS)) * 100;
+  const sliderBackground = `linear-gradient(to right, var(--colors-background-brand-default) 0%, var(--colors-background-brand-default) ${sliderPercent}%, var(--colors-background-tertiary) ${sliderPercent}%, var(--colors-background-tertiary) 100%)`;
 
   return (
     <Card>
       <Tabs activeType="exact" onActiveTypeChange={() => undefined}>
-          <Tabs.List>
-            <Tabs.Tab value="exact">Exact Mode</Tabs.Tab>
-            <Tabs.Tab value="range" disabled>
-              Range Mode
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs>
+        <Tabs.List>
+          <Tabs.Tab value="exact">Exact Mode</Tabs.Tab>
+          <Tabs.Tab value="range" disabled>
+            Range Mode
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+      <div
+        style={{
+          padding:
+            "var(--spacing-sm, 0.75rem) var(--spacing-md, 1rem) var(--spacing-xl, 1.5rem)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--spacing-md, 1rem)",
+        }}
+      >
         <div
           style={{
-            padding: "0.75rem 1rem 1.25rem",
             display: "flex",
             flexDirection: "column",
-            gap: "0.75rem",
+            gap: "var(--spacing-xxs, 0.25rem)",
           }}
         >
           <div
             style={{
               display: "flex",
-              alignItems: "baseline",
+              alignItems: "center",
               justifyContent: "space-between",
-              gap: "0.5rem",
+              gap: "var(--spacing-xs, 0.5rem)",
+              padding: "0 var(--spacing-xxs, 0.25rem)",
             }}
           >
             <span
               style={{
+                fontFamily: "Roboto, sans-serif",
                 fontSize: "1rem",
-                fontWeight: 600,
+                lineHeight: "1.5rem",
+                fontWeight: 400,
                 color: "var(--colors-text-primary)",
               }}
             >
@@ -124,12 +138,15 @@ const OddsInput = memo(function OddsInput({
             </span>
             <span
               style={{
-                fontSize: "0.8125rem",
+                fontFamily: "Roboto, sans-serif",
+                fontSize: "0.75rem",
+                lineHeight: "1rem",
+                fontWeight: 400,
                 color: "var(--colors-text-secondary)",
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              ±15% ({range.min} – {range.max})
+              ±15% ({range.min} - {range.max})
             </span>
           </div>
 
@@ -137,7 +154,7 @@ const OddsInput = memo(function OddsInput({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.5rem",
+              gap: "var(--spacing-xs, 0.5rem)",
             }}
           >
             <IconButton
@@ -172,20 +189,22 @@ const OddsInput = memo(function OddsInput({
               disabled={disabled || targetOdds >= MAX_ODDS}
             />
           </div>
-
-          <input
-            type="range"
-            className="odds-range"
-            min={MIN_ODDS}
-            max={MAX_ODDS}
-            step={1}
-            value={targetOdds}
-            onChange={handleSliderChange}
-            disabled={disabled}
-            aria-label="Target odds slider"
-          />
         </div>
-      </Card>
+
+        <input
+          type="range"
+          className="odds-range"
+          min={MIN_ODDS}
+          max={MAX_ODDS}
+          step={1}
+          value={targetOdds}
+          onChange={handleSliderChange}
+          disabled={disabled}
+          aria-label="Target odds slider"
+          style={{ background: sliderBackground }}
+        />
+      </div>
+    </Card>
   );
 });
 
@@ -194,7 +213,7 @@ function Card({ children }: { children: React.ReactNode }) {
     <section
       style={{
         background: "var(--colors-background-secondary)",
-        borderRadius: "0.75rem",
+        borderRadius: "1rem",
         border: "1px solid var(--colors-border-default)",
         overflow: "hidden",
       }}
