@@ -1,0 +1,113 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e10]: betMaker
+      - generic [ref=e11]:
+        - generic [ref=e12]: GH₵ 882.10
+        - button "Close" [ref=e13] [cursor=pointer]:
+          - img [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - img [ref=e22]
+          - generic [ref=e24]: Betslip Type
+        - button "More info" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+      - tablist [ref=e28]:
+        - tab "Target" [selected] [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: Target
+        - tab "Random" [disabled] [ref=e31]:
+          - generic [ref=e32]: Random
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - tablist [ref=e36]:
+          - tab "Exact Mode" [selected] [ref=e37] [cursor=pointer]:
+            - generic [ref=e40]: Exact Mode
+          - tab "Range Mode" [disabled] [ref=e41] [cursor=pointer]:
+            - generic [ref=e44]: Range Mode
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: Target Total Odds
+            - generic [ref=e48]: ±15% (9 – 12)
+          - generic [ref=e49]:
+            - button "Decrease odds" [ref=e50] [cursor=pointer]:
+              - img [ref=e52]
+            - spinbutton "Target odds" [ref=e56]: "10"
+            - button "Increase odds" [ref=e57] [cursor=pointer]:
+              - img [ref=e59]
+          - slider "Target odds slider" [ref=e61] [cursor=pointer]: "10"
+      - generic [ref=e62]:
+        - button "Filters" [expanded] [ref=e63] [cursor=pointer]:
+          - generic [ref=e65]:
+            - img [ref=e66]
+            - generic [ref=e68]: Filters
+          - img [ref=e69]
+        - region "Filters" [ref=e72]:
+          - generic [ref=e74]:
+            - button "RANDOMISE FILTERS" [disabled] [ref=e75]:
+              - generic [ref=e76]: RANDOMISE FILTERS
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - generic [ref=e79]:
+                  - img [ref=e80]
+                  - generic [ref=e82]: Leg Odds
+                - img [ref=e84]
+              - generic [ref=e87]:
+                - textbox "Minimum" [disabled] [ref=e90]:
+                  - /placeholder: "1.10"
+                - textbox "Maximum" [disabled] [ref=e93]:
+                  - /placeholder: "100"
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - generic [ref=e97]:
+                  - img [ref=e98]
+                  - generic [ref=e100]: "# Legs"
+                - img [ref=e102]
+              - generic [ref=e105]:
+                - textbox "Minimum" [disabled] [ref=e108]:
+                  - /placeholder: "1"
+                - textbox "Maximum" [disabled] [ref=e111]:
+                  - /placeholder: "60"
+            - generic [ref=e113]:
+              - generic [ref=e114]:
+                - generic [ref=e115]:
+                  - img [ref=e116]
+                  - generic [ref=e118]: Mode
+                - img [ref=e120]
+              - generic [ref=e122]:
+                - button "All" [disabled] [ref=e123] [cursor=pointer]:
+                  - img [ref=e125]
+                  - generic [ref=e127]: All
+                - button "Hot Picks" [disabled] [ref=e128] [cursor=pointer]:
+                  - img [ref=e130]
+                  - generic [ref=e132]: Hot Picks
+                - button "Favorites" [disabled] [ref=e133] [cursor=pointer]:
+                  - img [ref=e135]
+                  - generic [ref=e137]: Favorites
+            - generic [ref=e138]:
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - img [ref=e141]
+                  - generic [ref=e143]: Time
+                - img [ref=e145]
+              - generic [ref=e147]:
+                - button "Any" [disabled] [ref=e148] [cursor=pointer]:
+                  - generic [ref=e149]: Any
+                - button "Today" [disabled] [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]: Today
+                - button "3h" [disabled] [ref=e152] [cursor=pointer]:
+                  - generic [ref=e153]: 3h
+                - button "48h" [disabled] [ref=e154] [cursor=pointer]:
+                  - generic [ref=e155]: 48h
+                - button "72h" [disabled] [ref=e156] [cursor=pointer]:
+                  - generic [ref=e157]: 72h
+      - button "Exclude Leagues & Markets" [disabled] [ref=e158]:
+        - generic [ref=e159]:
+          - img [ref=e160]
+          - text: Exclude Leagues & Markets
+        - img [ref=e162]
+      - button "GENERATE SELECTIONS" [ref=e164] [cursor=pointer]:
+        - generic [ref=e165]: GENERATE SELECTIONS

@@ -10,6 +10,7 @@ const app = express();
 app.use(
   helmet({
     frameguard: false,
+    strictTransportSecurity: process.env.NODE_ENV === "production",
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
