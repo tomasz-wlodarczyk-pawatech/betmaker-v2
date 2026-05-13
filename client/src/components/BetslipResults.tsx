@@ -16,7 +16,9 @@ import {
 } from "@aliengain/icons";
 import { generateBookingCode } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries";
+import { useSavedBetslips } from "@/hooks/use-saved-betslips";
 import { BetSlipResult, BetSlipSelection } from "@/types";
+import { type ModeId, type TimeId } from "@/components/FiltersCard";
 
 interface BetslipResultsProps {
   result: BetSlipResult;
@@ -24,6 +26,9 @@ interface BetslipResultsProps {
   onRegenerate: () => void;
   onClose: () => void;
   brandIdentifier: string;
+  mode: ModeId;
+  time: TimeId;
+  onSaved: (bookingCode: string) => void;
 }
 
 const BetslipResults = memo(function BetslipResults({
@@ -31,10 +36,15 @@ const BetslipResults = memo(function BetslipResults({
   onRegenerate,
   onClose,
   brandIdentifier,
+  mode,
+  time,
+  onSaved,
 }: BetslipResultsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: countries } = useCountries();
+  const { add: addSavedBetslip } = useSavedBetslips();
 
   const countryData = useMemo(
     () => getCountryByBrand(countries, brandIdentifier),

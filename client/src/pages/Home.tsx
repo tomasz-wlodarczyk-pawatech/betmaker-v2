@@ -2,10 +2,15 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Button } from "@aliengain/components";
 import BetslipTypeCard from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
-import FiltersCard from "@/components/FiltersCard";
+import FiltersCard, {
+  type ModeId,
+  type TimeId,
+} from "@/components/FiltersCard";
 import ExcludeLeaguesPanel, {
   type ExcludeSelection,
 } from "@/components/ExcludeLeaguesPanel";
+import SavedBetslipsCard from "@/components/SavedBetslipsCard";
+import SaveToast from "@/components/SaveToast";
 import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
@@ -49,6 +54,9 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     leagues: [],
     markets: [],
   });
+  const [mode, setMode] = useState<ModeId>("all");
+  const [time, setTime] = useState<TimeId>("any");
+  const [savedToast, setSavedToast] = useState<string | null>(null);
 
   useEffect(() => {
     const isValid = supportedBrandIdentifiers.includes(
@@ -138,7 +146,12 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           disabled={processing}
         />
 
-        <FiltersCard />
+        <FiltersCard
+          mode={mode}
+          onModeChange={setMode}
+          time={time}
+          onTimeChange={setTime}
+        />
 
         <ExcludeLeaguesPanel
           countryCode={countryCode}
@@ -146,6 +159,8 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           value={excluded}
           onChange={setExcluded}
         />
+
+        <SavedBetslipsCard />
 
         <Button
           title="GENERATE SELECTIONS"
@@ -185,9 +200,19 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
             onRegenerate={handleGenerateBetslip}
             onClose={() => setBetslipResult(null)}
             brandIdentifier={brandIdentifier}
+            mode={mode}
+            time={time}
+            onSaved={(code) => setSavedToast(code)}
           />
         )}
       </div>
+
+      {savedToast && (
+        <SaveToast
+          bookingCode={savedToast}
+          onClose={() => setSavedToast(null)}
+        />
+      )}
     </>
   );
 });

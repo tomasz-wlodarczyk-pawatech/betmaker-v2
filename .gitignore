@@ -8,3 +8,4 @@ vite.config.ts.*
 *.tar.gz
 .playwright-mcp/
 block1-*.png
+.npmrc

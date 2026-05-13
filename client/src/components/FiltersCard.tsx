@@ -22,22 +22,32 @@ const LEGS_MAX = 60;
 const DEFAULT_LEG_ODDS: [number, number] = [LEG_ODDS_MIN, LEG_ODDS_MAX];
 const DEFAULT_LEGS: [number, number] = [LEGS_MIN, LEGS_MAX];
 
-type ModeId = "all" | "hot" | "fav";
-type TimeId = "any" | "today" | "3h" | "48h" | "72h";
+export type ModeId = "all" | "hot" | "fav";
+export type TimeId = "any" | "today" | "3h" | "48h" | "72h";
 
-const FiltersCard = memo(function FiltersCard() {
+interface FiltersCardProps {
+  mode: ModeId;
+  onModeChange: (next: ModeId) => void;
+  time: TimeId;
+  onTimeChange: (next: TimeId) => void;
+}
+
+const FiltersCard = memo(function FiltersCard({
+  mode,
+  onModeChange,
+  time,
+  onTimeChange,
+}: FiltersCardProps) {
   const [open, setOpen] = useState(true);
   const [legOdds, setLegOdds] = useState<[number, number]>(DEFAULT_LEG_ODDS);
   const [legs, setLegs] = useState<[number, number]>(DEFAULT_LEGS);
-  const [mode, setMode] = useState<ModeId>("all");
-  const [time, setTime] = useState<TimeId>("any");
 
   const handleReset = useCallback(() => {
     setLegOdds(DEFAULT_LEG_ODDS);
     setLegs(DEFAULT_LEGS);
-    setMode("all");
-    setTime("any");
-  }, []);
+    onModeChange("all");
+    onTimeChange("any");
+  }, [onModeChange, onTimeChange]);
 
   return (
     <div
@@ -130,7 +140,7 @@ const FiltersCard = memo(function FiltersCard() {
               { id: "fav", label: "Favorites", icon: <IconStar size="md" /> },
             ]}
             activeId={mode}
-            onSelect={(id) => setMode(id as ModeId)}
+            onSelect={(id) => onModeChange(id as ModeId)}
           />
 
           <ChipFilter
@@ -145,7 +155,7 @@ const FiltersCard = memo(function FiltersCard() {
               { id: "72h", label: "72h" },
             ]}
             activeId={time}
-            onSelect={(id) => setTime(id as TimeId)}
+            onSelect={(id) => onTimeChange(id as TimeId)}
           />
         </div>
       )}
