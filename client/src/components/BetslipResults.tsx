@@ -76,16 +76,55 @@ const BetslipResults = memo(function BetslipResults({
     }
   }, [result]);
 
-  const handleSaveForLater = useCallback(() => {
-    window.parent.postMessage(
-      {
-        type: "betslip_generator_save_for_later",
-        selections: selectionIds,
+  const handleSaveForLater = useCallback(async () => {
+    if (isSaving) return;
+    try {
+      setIsSaving(true);
+      setError(null);
+      const bookingData = await generateBookingCode(
+        countryData?.countryIso2Code?.toLowerCase() ?? "gh",
+        selectionIds,
+        brandIdentifier,
+      );
+      if (!bookingData?.bookingCode) {
+        throw new Error("Missing booking code");
+      }
+      addSavedBetslip({
+        bookingCode: bookingData.bookingCode,
         totalOdds: result.totalOdds,
-      },
-      "*",
-    );
-  }, [selectionIds, result.totalOdds]);
+        selections: result.selections,
+        mode,
+        time,
+        domain: bookingData.domain ?? "",
+      });
+      onSaved(bookingData.bookingCode);
+      window.parent.postMessage(
+        {
+          type: "betslip_generator_save_for_later",
+          selections: selectionIds,
+          totalOdds: result.totalOdds,
+          bookingCode: bookingData.bookingCode,
+        },
+        "*",
+      );
+    } catch (err) {
+      console.error("Error saving betslip:", err);
+      setError("There was a problem saving your betslip. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    isSaving,
+    selectionIds,
+    result.totalOdds,
+    result.selections,
+    countryData,
+    brandIdentifier,
+    mode,
+    time,
+    addSavedBetslip,
+    onSaved,
+  ]);
 
   const handleAddToBetslip = useCallback(async () => {
     try {
@@ -192,13 +231,15 @@ const BetslipResults = memo(function BetslipResults({
               }}
             >
               <Button
-                title="SAVE FOR LATER"
+                title={isSaving ? "SAVING…" : "SAVE FOR LATER"}
                 variant="tonal"
                 size="lg"
                 buttonStyle="square"
                 fullWidth
                 leftIcon={<IconBookmark size="sm" />}
                 onClick={handleSaveForLater}
+                isLoading={isSaving}
+                disabled={isSaving}
                 style={{ flex: "1 1 0" }}
               />
               <Button

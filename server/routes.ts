@@ -142,42 +142,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body,
       );
 
+      const pawagateBase =
+        process.env.PAWAGATE_BASE_URL || "https://miniapps.betpawa.com";
+      const miniappEnv = process.env.MINIAPP_ENV || "production";
+      const appOrigin = process.env.APP_ORIGIN || "";
+
       const responseDomain = await axios.get(
-        `https://pawagate.replit.app/api/brand/v1/countries/betpawa`,
+        `${pawagateBase}/api/brand/v1/countries/betpawa`,
         {
           headers: {
             "Content-Type": "application/json",
-            "X-MiniApp-Env": "staging",
-            "x-pawa-brand": `${brandIdentifier}`,
-            Origin:
-              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
+            "x-miniapp-env": miniappEnv,
+            "x-pawa-brand": brandIdentifier,
+            ...(appOrigin ? { Origin: appOrigin } : {}),
           },
         },
       );
-      console.log(responseDomain.data);
 
       const domainData = responseDomain.data.find(
         (e: any) => e.brandIdentifier === brandIdentifier,
-      ).rootDomain;
+      )?.rootDomain;
 
       const response = await axios.post(
-        `https://pawagate.replit.app/api/sportsbook/v2/booking-number`,
+        `${pawagateBase}/api/sportsbook/v2/booking-number`,
         { selections: selectionIds },
         {
           headers: {
             "Content-Type": "application/json",
-            "X-MiniApp-Env": "staging",
+            "x-miniapp-env": miniappEnv,
             "x-pawa-brand": brandIdentifier,
             "x-pawa-language": "en",
-            Origin:
-              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
+            ...(appOrigin ? { Origin: appOrigin } : {}),
           },
         },
       );
 
       return res.json({
         bookingCode: response.data.code,
-        domain: "http://gh.staging.betpawa.local:3000",
+        domain: domainData
+          ? `https://${domainData}`
+          : "http://gh.staging.betpawa.local:3000",
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
