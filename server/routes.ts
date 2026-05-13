@@ -6,8 +6,10 @@ import axios from "axios";
 import {
   generateBetslipSchema,
   generateBookingCodeSchema,
+  availableFiltersSchema,
 } from "@shared/schema";
 import { generateBetslip } from "./services/betslipService";
+import { getPopularEvents } from "./services/pawagate";
 
 // List of supported country codes
 const SUPPORTED_COUNTRIES = [
@@ -67,10 +69,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { targetOdds, brandIdentifier } = generateBetslipSchema.parse(
-        req.body,
-      );
-      console.log(brandIdentifier);
+      const {
+        targetOdds,
+        brandIdentifier,
+        excludedLeagues = [],
+        excludedMarkets = [],
+      } = generateBetslipSchema.parse(req.body);
+
       // Fetch events data
       const response = await axios.get(
         `https://pawagate.replit.app/api/sportsbook-plus/v1/events/popular`,
@@ -85,20 +90,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       );
 
-      // Check if the response has the new format with status and data fields
-      console.log(response.data);
-      let events;
+      let events: any[];
       if (
         response.data.status === "success" &&
         Array.isArray(response.data.data)
       ) {
         events = response.data.data;
       } else {
-        // Handle legacy format or unexpected response
         events = Array.isArray(response.data) ? response.data : [];
       }
 
-      console.log(events);
+      if (excludedLeagues.length > 0 || excludedMarkets.length > 0) {
+        const leagueSet = new Set(excludedLeagues);
+        const marketSet = new Set(excludedMarkets);
+        events = events
+          .filter((e: any) => !leagueSet.has(e?.competition))
+          .map((e: any) => ({
+            ...e,
+            markets: Array.isArray(e?.markets)
+              ? e.markets.filter((m: any) => !marketSet.has(m?.name))
+              : e?.markets,
+          }))
+          .filter((e: any) => Array.isArray(e?.markets) && e.markets.length > 0);
+      }
 
       // Generate betslip
       const betslip = await generateBetslip(events, targetOdds);
@@ -194,6 +208,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(500).json({ message: "Failed to generate booking code" });
+    }
+  });
+
+  app.post("/api/:country/filters/available", async (req, res) => {
+    try {
+      const countryCode = getCountryCode(req);
+
+      if (!countryCode) {
+        return res.status(400).json({
+          message:
+            "Invalid country code. Supported countries: " +
+            SUPPORTED_COUNTRIES.join(", "),
+        });
+      }
+
+      const { brandIdentifier } = availableFiltersSchema.parse(req.body);
+
+      const raw = (await getPopularEvents(brandIdentifier)) as
+        | unknown[]
+        | { status?: string; data?: unknown[] };
+
+      const events: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { data?: unknown[] })?.data)
+          ? ((raw as { data: unknown[] }).data as any[])
+          : [];
+
+      const leagueSet = new Set<string>();
+      const marketSet = new Set<string>();
+      for (const ev of events) {
+        if (typeof ev?.competition === "string") {
+          leagueSet.add(ev.competition);
+        }
+        if (Array.isArray(ev?.markets)) {
+          for (const m of ev.markets) {
+            if (typeof m?.name === "string") marketSet.add(m.name);
+          }
+        }
+      }
+
+      return res.json({
+        leagues: Array.from(leagueSet).sort(),
+        markets: Array.from(marketSet).sort(),
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
+      }
+
+      console.error("Error fetching filters:", error);
+      res.status(500).json({ message: "Failed to fetch filters" });
     }
   });
 

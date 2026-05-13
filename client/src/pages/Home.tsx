@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Button } from "@aliengain/components";
-import {
-  IconChevronDown,
-  IconCirlceInfo,
-  IconFilter,
-} from "@aliengain/icons";
 import BetslipTypeCard from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
 import FiltersCard from "@/components/FiltersCard";
+import ExcludeLeaguesPanel, {
+  type ExcludeSelection,
+} from "@/components/ExcludeLeaguesPanel";
 import { generateBetslip } from "@/lib/api";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
@@ -47,6 +45,10 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [error, setError] = useState(false);
   const [invalidBrand, setInvalidBrand] = useState(false);
+  const [excluded, setExcluded] = useState<ExcludeSelection>({
+    leagues: [],
+    markets: [],
+  });
 
   useEffect(() => {
     const isValid = supportedBrandIdentifiers.includes(
@@ -76,7 +78,10 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     }, 200);
 
     try {
-      const result = await generateBetslip(countryCode, targetOdds);
+      const result = await generateBetslip(countryCode, targetOdds, {
+        excludedLeagues: excluded.leagues,
+        excludedMarkets: excluded.markets,
+      });
 
       clearInterval(progressInterval);
       setProcessingProgress(100);
@@ -90,7 +95,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
       setError(true);
       console.error("Error generating betslip:", error);
     }
-  }, [invalidBrand, targetOdds, countryCode]);
+  }, [invalidBrand, targetOdds, countryCode, excluded.leagues, excluded.markets]);
 
   const handleRetry = useCallback(
     () => handleGenerateBetslip(),
@@ -135,7 +140,12 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
 
         <FiltersCard />
 
-        <ExcludeLeaguesRow />
+        <ExcludeLeaguesPanel
+          countryCode={countryCode}
+          brandIdentifier={brandIdentifier}
+          value={excluded}
+          onChange={setExcluded}
+        />
 
         <Button
           title="GENERATE SELECTIONS"
@@ -180,62 +190,5 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     </>
   );
 });
-
-function ExcludeLeaguesRow() {
-  return (
-    <button
-      type="button"
-      aria-label="Exclude leagues and markets"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding:
-          "var(--spacing-xs, 0.5rem) var(--spacing-sm, 0.75rem)",
-        background: "var(--colors-background-secondary)",
-        border: "1px solid var(--colors-border-default)",
-        borderRadius: "var(--radius-lg, 0.75rem)",
-        cursor: "pointer",
-        font: "inherit",
-        color: "var(--colors-text-primary)",
-        textAlign: "left",
-        width: "100%",
-      }}
-    >
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "var(--spacing-xs, 0.5rem)",
-          flex: "1 1 auto",
-          minWidth: 0,
-        }}
-      >
-        <IconFilter size="md" color="var(--colors-icon-primary)" />
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--spacing-xxs, 0.25rem)",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "Roboto, sans-serif",
-              fontSize: "0.875rem",
-              lineHeight: "1.25rem",
-              fontWeight: 700,
-              color: "var(--colors-text-primary)",
-            }}
-          >
-            Exclude Leagues &amp; Markets
-          </span>
-          <IconCirlceInfo size="sm" color="var(--colors-icon-secondary)" />
-        </span>
-      </span>
-      <IconChevronDown size="md" color="var(--colors-icon-primary)" />
-    </button>
-  );
-}
 
 export default Home;

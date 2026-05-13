@@ -7,6 +7,7 @@ const API_BASE = "/api";
 export async function generateBetslip(
   countryCode: string,
   targetOdds: number,
+  options?: { excludedLeagues?: string[]; excludedMarkets?: string[] },
 ): Promise<BetSlipResult | null> {
   try {
     const countries = COUNTRIES as Country[];
@@ -25,6 +26,8 @@ export async function generateBetslip(
       {
         targetOdds,
         brandIdentifier: countryData.brandIdentifier,
+        excludedLeagues: options?.excludedLeagues,
+        excludedMarkets: options?.excludedMarkets,
       },
     );
 
@@ -33,6 +36,24 @@ export async function generateBetslip(
     console.error("Error generating betslip:", error);
     throw error;
   }
+}
+
+export interface AvailableFilters {
+  leagues: string[];
+  markets: string[];
+}
+
+export async function fetchAvailableFilters(
+  countryCode: string,
+  brandIdentifier: string,
+  timeRange: string = "whenever",
+): Promise<AvailableFilters> {
+  const response = await apiRequest(
+    "POST",
+    `${API_BASE}/${countryCode}/filters/available`,
+    { brandIdentifier, timeRange },
+  );
+  return response.json();
 }
 
 export async function generateBookingCode(

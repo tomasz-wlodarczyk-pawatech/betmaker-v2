@@ -62,6 +62,8 @@ export type Selection = typeof selections.$inferSelect;
 export const generateBetslipSchema = z.object({
   targetOdds: z.number().min(2).max(1000),
   brandIdentifier: z.string(),
+  excludedLeagues: z.array(z.string()).optional(),
+  excludedMarkets: z.array(z.string()).optional(),
 });
 
 export const generateBookingCodeSchema = z.object({
@@ -69,7 +71,22 @@ export const generateBookingCodeSchema = z.object({
   brandIdentifier: z.string()
 });
 
+export const timeRangeSchema = z.enum([
+  "whenever",
+  "today",
+  "3h",
+  "48h",
+  "72h",
+]);
+
+export const availableFiltersSchema = z.object({
+  brandIdentifier: z.string(),
+  timeRange: timeRangeSchema.default("whenever"),
+});
+
 export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
 export type GenerateBookingCodeRequest = z.infer<
   typeof generateBookingCodeSchema
 >;
+export type AvailableFiltersRequest = z.infer<typeof availableFiltersSchema>;
+export type TimeRange = z.infer<typeof timeRangeSchema>;
