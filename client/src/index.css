@@ -77,7 +77,11 @@ button {
 .odds-range-track {
   position: relative;
   height: 1.25rem;
-  margin: 0 0.625rem;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: pointer;
 }
 
 .odds-range-track::before {
@@ -86,22 +90,23 @@ button {
   top: 50%;
   left: 0;
   right: 0;
-  height: 0.375rem;
+  height: 0.5rem;
   border-radius: 9999px;
   background: var(--colors-background-tertiary);
   transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .odds-range-track::after {
   content: "";
   position: absolute;
   top: 50%;
-  height: 0.375rem;
-  border-radius: 9999px;
-  left: var(--range-start, 0%);
-  right: calc(100% - var(--range-end, 100%));
+  height: 0.5rem;
+  left: calc(var(--range-start, 0%) + 0.625rem);
+  right: calc(100% - var(--range-end, 100%) + 0.625rem);
   background: var(--colors-background-brand-default);
   transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .odds-range-thumb {
@@ -109,12 +114,25 @@ button {
   top: 50%;
   width: 1.25rem;
   height: 1.25rem;
+  padding: 0;
   border-radius: 9999px;
   background: var(--colors-background-secondary);
-  border: 3px solid var(--colors-background-brand-default);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  border: 1.82px solid var(--colors-background-brand-default);
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  will-change: left;
+}
+
+.odds-range-thumb:active {
+  cursor: grabbing;
+}
+
+.odds-range-thumb:focus-visible {
+  outline: 2px solid var(--colors-background-brand-default);
+  outline-offset: 2px;
 }
 
 .processing-spin {

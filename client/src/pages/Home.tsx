@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Button } from "@aliengain/components";
-import { IconChevronDown, IconFilter } from "@aliengain/icons";
+import {
+  IconChevronDown,
+  IconCirlceInfo,
+  IconFilter,
+} from "@aliengain/icons";
 import BetslipTypeCard from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
 import FiltersCard from "@/components/FiltersCard";
@@ -140,7 +144,6 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           fullWidth
           onClick={handleGenerateBetslip}
           disabled={processing}
-          style={{ textTransform: "uppercase", letterSpacing: "0.04em" }}
         />
 
         {processing && (
@@ -182,39 +185,55 @@ function ExcludeLeaguesRow() {
   return (
     <button
       type="button"
-      disabled
+      aria-label="Exclude leagues and markets"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "0.5rem",
-        padding: "0.875rem 1rem",
+        padding:
+          "var(--spacing-xs, 0.5rem) var(--spacing-sm, 0.75rem)",
         background: "var(--colors-background-secondary)",
         border: "1px solid var(--colors-border-default)",
-        borderRadius: "0.75rem",
-        cursor: "not-allowed",
-        opacity: 0.85,
+        borderRadius: "var(--radius-lg, 0.75rem)",
+        cursor: "pointer",
         font: "inherit",
         color: "var(--colors-text-primary)",
         textAlign: "left",
+        width: "100%",
       }}
     >
       <span
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: "0.5rem",
-          fontSize: "0.9375rem",
-          fontWeight: 600,
+          gap: "var(--spacing-xs, 0.5rem)",
+          flex: "1 1 auto",
+          minWidth: 0,
         }}
       >
-        <IconFilter size="md" />
-        Exclude Leagues & Markets
-        <span style={{ color: "var(--colors-text-secondary)" }}>
-          {" "}
+        <IconFilter size="md" color="var(--colors-icon-primary)" />
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--spacing-xxs, 0.25rem)",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "Roboto, sans-serif",
+              fontSize: "0.875rem",
+              lineHeight: "1.25rem",
+              fontWeight: 700,
+              color: "var(--colors-text-primary)",
+            }}
+          >
+            Exclude Leagues &amp; Markets
+          </span>
+          <IconCirlceInfo size="sm" color="var(--colors-icon-secondary)" />
         </span>
       </span>
-      <IconChevronDown size="md" />
+      <IconChevronDown size="md" color="var(--colors-icon-primary)" />
     </button>
   );
 }

@@ -49,3 +49,13 @@ Port `5000` is hardcoded in `server/index.ts` and bound to `127.0.0.1` only ("th
 - Roboto + lime-green `#9ce800` is the BetPawa brand identity (see `DESIGN_GUIDELINES.md` for the full palette and component patterns). shadcn/ui components live under `client/src/components/ui/` — prefer composing those over hand-rolling Radix.
 - Zod schemas in `shared/schema.ts` are the source of truth for API request shapes; both sides import them.
 - The CSP in `server/index.ts` permits Google Tag Manager / Analytics — keep it intact when adding script sources.
+
+### Pawablox design system (REQUIRED)
+
+The UI is built on the **pawablox** design system, published under the `@aliengain/*` npm scope (repo: `AlienGain/pawablox-design-system`). **Use pawablox primitives for everything** — don't hand-roll buttons/inputs/chips/accordions/segmented controls or pull in shadcn. Imports:
+
+- `@aliengain/components` — `Accordion`, `Alert`, `Badge`, `BetButton`, `Button`, `Checkbox`, `Chip`, `CurrencySelector`, `Dropdown`, `IconButton`, `Input`, `ListItem`, `MatchCard`, `SegmentedControl`, `Switch`, `Tabs`, `Toast`, `Tooltip`, etc. (Note: no `Slider`/`RangeSlider` is exported — build custom slider visuals on top of the `.odds-range-*` CSS in `client/src/index.css`.)
+- `@aliengain/icons` — all icons (`IconSettings`, `IconRotateCw`, `IconChevronUp`, `IconFlame`, …). Use the `size` prop (`sm`/`md`/`lg`) and `color="var(--colors-icon-primary)"`.
+- `@aliengain/tokens/scss/vars/_theme.css` — design tokens as CSS custom properties (`--colors-background-secondary`, `--colors-border-default`, `--spacing-sm`, `--radius-lg`, etc.). Always reference tokens via `var(--…)`, never hardcode colors or spacing.
+
+When you need something pawablox doesn't ship (e.g., dual-thumb range slider), compose it from `Input` + a custom track styled with tokens — keep the API and look consistent with the rest of the system.
