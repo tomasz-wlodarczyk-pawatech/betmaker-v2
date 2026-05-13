@@ -4,10 +4,18 @@ import { BetSlipResult, Country } from "@/types";
 
 const API_BASE = "/api";
 
+export interface GenerateBetslipOptions {
+  timeRange?: "whenever" | "today" | "3h" | "48h" | "72h";
+  selectionMode?: "all" | "hot" | "fav";
+  randomMode?: boolean;
+  excludedLeagues?: string[];
+  excludedMarkets?: string[];
+}
+
 export async function generateBetslip(
   countryCode: string,
   targetOdds: number,
-  options?: { excludedLeagues?: string[]; excludedMarkets?: string[] },
+  options?: GenerateBetslipOptions,
 ): Promise<BetSlipResult | null> {
   try {
     const countries = COUNTRIES as Country[];
@@ -26,8 +34,11 @@ export async function generateBetslip(
       {
         targetOdds,
         brandIdentifier: countryData.brandIdentifier,
-        excludedLeagues: options?.excludedLeagues,
-        excludedMarkets: options?.excludedMarkets,
+        timeRange: options?.timeRange ?? "whenever",
+        selectionMode: options?.selectionMode ?? "all",
+        randomMode: options?.randomMode ?? false,
+        excludedLeagues: options?.excludedLeagues ?? [],
+        excludedMarkets: options?.excludedMarkets ?? [],
       },
     );
 

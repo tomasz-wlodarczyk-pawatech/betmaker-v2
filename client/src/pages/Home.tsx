@@ -183,6 +183,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
             result={betslipResult}
             targetOdds={targetOdds}
             onRegenerate={handleGenerateBetslip}
+            onClose={() => setBetslipResult(null)}
             brandIdentifier={brandIdentifier}
           />
         )}

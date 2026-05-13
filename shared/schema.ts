@@ -62,8 +62,14 @@ export type Selection = typeof selections.$inferSelect;
 export const generateBetslipSchema = z.object({
   targetOdds: z.number().min(2).max(1000),
   brandIdentifier: z.string(),
-  excludedLeagues: z.array(z.string()).optional(),
-  excludedMarkets: z.array(z.string()).optional(),
+  timeRange: z
+    .enum(["whenever", "today", "3h", "48h", "72h"])
+    .optional()
+    .default("whenever"),
+  selectionMode: z.enum(["all", "hot", "fav"]).optional().default("all"),
+  randomMode: z.boolean().optional().default(false),
+  excludedLeagues: z.array(z.string()).optional().default([]),
+  excludedMarkets: z.array(z.string()).optional().default([]),
 });
 
 export const generateBookingCodeSchema = z.object({

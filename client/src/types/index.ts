@@ -48,6 +48,7 @@ export interface HotSelection {
   competition: string;
   marketName: string;
   startTime: string;
+  isHot: boolean;
 }
 
 export type Country = {

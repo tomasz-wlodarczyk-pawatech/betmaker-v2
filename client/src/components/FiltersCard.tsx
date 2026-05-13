@@ -19,8 +19,8 @@ const LEG_ODDS_MAX = 100;
 const LEGS_MIN = 1;
 const LEGS_MAX = 60;
 
-const DEFAULT_LEG_ODDS: [number, number] = [2, 50];
-const DEFAULT_LEGS: [number, number] = [24, 55];
+const DEFAULT_LEG_ODDS: [number, number] = [LEG_ODDS_MIN, LEG_ODDS_MAX];
+const DEFAULT_LEGS: [number, number] = [LEGS_MIN, LEGS_MAX];
 
 type ModeId = "all" | "hot" | "fav";
 type TimeId = "any" | "today" | "3h" | "48h" | "72h";

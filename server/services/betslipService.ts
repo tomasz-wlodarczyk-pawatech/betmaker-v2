@@ -4,17 +4,22 @@ import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
  * Generate a betslip with selections that match the target odds
  * Optimized for speed while maintaining randomness
  */
+export interface GenerateBetslipOptions {
+  selectionMode?: "all" | "hot" | "fav";
+}
+
 export async function generateBetslip(
   events: Event[],
   targetOdds: number,
-  tolerance: number = 0.15
+  tolerance: number = 0.15,
+  options: GenerateBetslipOptions = {},
 ): Promise<BetSlipResult | null> {
   // Set a timeout to prevent long-running calculations
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 1000; // 1000ms max execution time
-  
+
   // Extract all hot selections
-  const hotSelections = getHotSelections(events);
+  const hotSelections = getHotSelections(events, options.selectionMode ?? "all");
   
   if (hotSelections.length === 0) {
     return null;
@@ -46,7 +51,7 @@ export async function generateBetslip(
           selectionName: s.name,
           odds: s.odds.toString(),
           startTime: s.startTime,
-          isHot: true // Mark all selections as hot
+          isHot: s.isHot
         }))
       };
     }
@@ -66,7 +71,7 @@ export async function generateBetslip(
           selectionName: s.name,
           odds: s.odds.toString(),
           startTime: s.startTime,
-          isHot: true // Mark all selections as hot
+          isHot: s.isHot
         }))
       };
     }
@@ -86,7 +91,7 @@ export async function generateBetslip(
         selectionName: s.name,
         odds: s.odds.toString(),
         startTime: s.startTime,
-        isHot: true // Mark all selections as hot
+        isHot: s.isHot
       }))
     };
   }
@@ -97,29 +102,32 @@ export async function generateBetslip(
 /**
  * Extract all hot selections from events
  */
-function getHotSelections(events: Event[]): HotSelection[] {
-  const hotSelections: HotSelection[] = [];
-  
-  events.forEach(event => {
-    event.markets.forEach(market => {
-      market.selections.forEach(selection => {
-        if (selection.hot === 1) {
-          hotSelections.push({
-            id: selection.id,
-            name: selection.name,
-            odds: parseFloat(selection.odds),
-            eventId: event.event_id,
-            eventName: event.event_name,
-            competition: event.competition,
-            marketName: market.name,
-            startTime: event.start_time
-          });
-        }
+function getHotSelections(
+  events: Event[],
+  mode: "all" | "hot" | "fav" = "all",
+): HotSelection[] {
+  const selections: HotSelection[] = [];
+
+  events.forEach((event) => {
+    event.markets.forEach((market) => {
+      market.selections.forEach((selection) => {
+        if (mode === "hot" && selection.hot !== 1) return;
+        selections.push({
+          id: selection.id,
+          name: selection.name,
+          odds: parseFloat(selection.odds),
+          eventId: event.event_id,
+          eventName: event.event_name,
+          competition: event.competition,
+          marketName: market.name,
+          startTime: event.start_time,
+          isHot: selection.hot === 1,
+        });
       });
     });
   });
-  
-  return hotSelections;
+
+  return selections;
 }
 
 /**

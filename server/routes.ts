@@ -72,33 +72,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         targetOdds,
         brandIdentifier,
-        excludedLeagues = [],
-        excludedMarkets = [],
+        selectionMode,
+        excludedLeagues,
+        excludedMarkets,
       } = generateBetslipSchema.parse(req.body);
 
-      // Fetch events data
-      const response = await axios.get(
-        `https://pawagate.replit.app/api/sportsbook-plus/v1/events/popular`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "X-MiniApp-Env": "staging",
-            "x-pawa-brand": `${brandIdentifier}`,
-            Origin:
-              "https://b4e16270-61cd-4e16-bf21-8a6f596beb22-00-11ejn0ozyaqpp.janeway.replit.dev",
-          },
-        },
-      );
+      const raw = (await getPopularEvents(brandIdentifier)) as
+        | unknown[]
+        | { status?: string; data?: unknown[] };
 
-      let events: any[];
-      if (
-        response.data.status === "success" &&
-        Array.isArray(response.data.data)
-      ) {
-        events = response.data.data;
-      } else {
-        events = Array.isArray(response.data) ? response.data : [];
-      }
+      let events: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { data?: unknown[] })?.data)
+          ? ((raw as { data: unknown[] }).data as any[])
+          : [];
 
       if (excludedLeagues.length > 0 || excludedMarkets.length > 0) {
         const leagueSet = new Set(excludedLeagues);
@@ -111,11 +98,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? e.markets.filter((m: any) => !marketSet.has(m?.name))
               : e?.markets,
           }))
-          .filter((e: any) => Array.isArray(e?.markets) && e.markets.length > 0);
+          .filter(
+            (e: any) => Array.isArray(e?.markets) && e.markets.length > 0,
+          );
       }
 
-      // Generate betslip
-      const betslip = await generateBetslip(events, targetOdds);
+      const betslip = await generateBetslip(events, targetOdds, 0.15, {
+        selectionMode,
+      });
 
       if (!betslip) {
         return res
