@@ -1,7 +1,7 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@aliengain/components";
+import { BackdropProvider, ThemeProvider } from "@aliengain/components";
 import Layout from "@/components/Layout";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
 import NotFound from "@/pages/not-found";
@@ -54,7 +54,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
-        <Router />
+        <BackdropProvider>
+          <Router />
+        </BackdropProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

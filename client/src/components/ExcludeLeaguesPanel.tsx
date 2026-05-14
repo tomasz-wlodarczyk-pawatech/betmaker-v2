@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Checkbox, Chip } from "@aliengain/components";
+import InfoTooltipButton from "./InfoTooltipButton";
 import {
   FlagAr,
   FlagAt,
@@ -45,7 +46,6 @@ import {
   FlagTr,
   FlagUa,
   FlagUs,
-  IconCirlceInfo,
   IconChevronDown,
   IconChevronUp,
   IconFilter,
@@ -482,7 +482,23 @@ function PanelHeader({
               {count}
             </Badge>
           )}
-          <IconCirlceInfo size="sm" color="var(--colors-icon-secondary)" />
+          <InfoTooltipButton
+            inline
+            title="Exclude Leagues & Markets"
+            sections={[
+              {
+                title: "Leagues",
+                description:
+                  "Hide whole competitions from the generator. Any pick from an excluded league is skipped, even if it would fit your target odds.",
+              },
+              {
+                title: "Markets",
+                description:
+                  "Hide specific bet types (for example BTTS or Over/Under). Excluded markets are never offered, regardless of the event.",
+              },
+            ]}
+            tip="Excluded items are sticky across regenerations until you remove them or reset filters."
+          />
         </span>
       </span>
       {open ? (

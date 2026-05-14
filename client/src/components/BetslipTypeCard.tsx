@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { SegmentedControl } from "@aliengain/components";
-import { IconBetslip, IconCirlceInfo } from "@aliengain/icons";
+import { IconBetslip } from "@aliengain/icons";
+import InfoTooltipButton from "./InfoTooltipButton";
 
 const BetslipTypeCard = memo(function BetslipTypeCard() {
   const [betslipType, setBetslipType] = useState<"target" | "random">("target");
@@ -50,24 +51,22 @@ const BetslipTypeCard = memo(function BetslipTypeCard() {
               Betslip Type
             </span>
           </div>
-          <button
-            type="button"
-            aria-label="More info"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "1rem",
-              height: "1rem",
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              color: "var(--colors-icon-secondary)",
-            }}
-          >
-            <IconCirlceInfo size="sm" color="var(--colors-icon-secondary)" />
-          </button>
+          <InfoTooltipButton
+            title="Betslip Type"
+            sections={[
+              {
+                title: "Target Mode",
+                description:
+                  "You set the total odds you want for your betslip. The app finds the best combination of picks to reach your target odds.",
+              },
+              {
+                title: "Random Mode",
+                description:
+                  "Let the app surprise you! It picks random target odd and calculates whatever come out. Great for trying something new.",
+              },
+            ]}
+            tip="Use Target mode when you know what odds you want. Use Random mode when you want to discover new betting opportunities."
+          />
         </div>
         <SegmentedControl
           fullWidth

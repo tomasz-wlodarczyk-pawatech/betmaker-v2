@@ -3,7 +3,6 @@ import { Button, Chip, Input } from "@aliengain/components";
 import {
   IconChevronDown,
   IconChevronUp,
-  IconCirlceInfo,
   IconFlame,
   IconHash,
   IconLayoutGrid,
@@ -13,6 +12,8 @@ import {
   IconStopwatch,
   IconTrendingUp,
 } from "@aliengain/icons";
+import InfoTooltipButton from "./InfoTooltipButton";
+import type { InfoSection } from "./InfoModal";
 
 const LEG_ODDS_MIN = 1.1;
 const LEG_ODDS_MAX = 100;
@@ -114,6 +115,22 @@ const FiltersCard = memo(function FiltersCard({
             step={0.1}
             value={legOdds}
             onChange={setLegOdds}
+            info={{
+              title: "Leg Odds",
+              sections: [
+                {
+                  title: "What this controls",
+                  description:
+                    "Sets the minimum and maximum odds for each individual selection in your betslip. Selections outside this range are excluded.",
+                },
+                {
+                  title: "When to narrow it",
+                  description:
+                    "Use a tighter range to avoid heavy favourites or longshots. Widen it to give the generator more picks to combine.",
+                },
+              ],
+              tip: "Lower odds picks land more often, higher odds picks pay more. Tune this range to match the risk you want.",
+            }}
           />
 
           <RangeFilter
@@ -124,6 +141,22 @@ const FiltersCard = memo(function FiltersCard({
             step={1}
             value={legs}
             onChange={setLegs}
+            info={{
+              title: "Legs",
+              sections: [
+                {
+                  title: "What this controls",
+                  description:
+                    "Sets the minimum and maximum number of selections the generator can include in a single betslip.",
+                },
+                {
+                  title: "How it affects results",
+                  description:
+                    "More legs multiply your odds faster but every leg has to win. Fewer legs are safer but pay less.",
+                },
+              ],
+              tip: "Stick to a smaller range when chasing higher reliability, expand it when targeting big odds.",
+            }}
           />
 
           <ChipFilter
@@ -141,6 +174,27 @@ const FiltersCard = memo(function FiltersCard({
             ]}
             activeId={mode}
             onSelect={(id) => onModeChange(id as ModeId)}
+            info={{
+              title: "Mode",
+              sections: [
+                {
+                  title: "All",
+                  description:
+                    "Considers every selection available from the upstream events feed.",
+                },
+                {
+                  title: "Hot Picks",
+                  description:
+                    "Only uses selections currently marked as trending by the platform.",
+                },
+                {
+                  title: "Favorites",
+                  description:
+                    "Limits the generator to selections you have starred as favourites.",
+                },
+              ],
+              tip: "Hot Picks is a good shortcut when you want momentum, Favorites when you trust your own shortlist.",
+            }}
           />
 
           <ChipFilter
@@ -156,6 +210,22 @@ const FiltersCard = memo(function FiltersCard({
             ]}
             activeId={time}
             onSelect={(id) => onTimeChange(id as TimeId)}
+            info={{
+              title: "Time",
+              sections: [
+                {
+                  title: "What this controls",
+                  description:
+                    "Limits selections to events kicking off within the chosen window from now.",
+                },
+                {
+                  title: "Tighter windows",
+                  description:
+                    "Use shorter ranges like 3h or Today to focus on imminent action. Use 48h or 72h to plan ahead.",
+                },
+              ],
+              tip: "Shorter windows usually give fresher odds; longer windows give more options to combine.",
+            }}
           />
         </div>
       )}
@@ -236,6 +306,12 @@ function FiltersHeader({
   );
 }
 
+interface InfoConfig {
+  title: string;
+  sections: InfoSection[];
+  tip?: string;
+}
+
 interface RangeFilterProps {
   icon: React.ReactNode;
   label: string;
@@ -244,6 +320,7 @@ interface RangeFilterProps {
   step: number;
   value: [number, number];
   onChange: (next: [number, number]) => void;
+  info: InfoConfig;
 }
 
 function RangeFilter({
@@ -254,6 +331,7 @@ function RangeFilter({
   step,
   value,
   onChange,
+  info,
 }: RangeFilterProps) {
   const [minDraft, setMinDraft] = useState<string | null>(null);
   const [maxDraft, setMaxDraft] = useState<string | null>(null);
@@ -306,7 +384,7 @@ function RangeFilter({
           gap: "var(--spacing-xxs, 0.25rem)",
         }}
       >
-        <FilterHeaderRow icon={icon} label={label} />
+        <FilterHeaderRow icon={icon} label={label} info={info} />
         <div
           style={{
             display: "flex",
@@ -366,6 +444,7 @@ interface ChipFilterProps {
   activeId: string;
   onSelect: (id: string) => void;
   allGrow?: boolean;
+  info: InfoConfig;
 }
 
 function ChipFilter({
@@ -375,6 +454,7 @@ function ChipFilter({
   activeId,
   onSelect,
   allGrow,
+  info,
 }: ChipFilterProps) {
   return (
     <div
@@ -386,7 +466,7 @@ function ChipFilter({
         gap: "var(--spacing-xxs, 0.25rem)",
       }}
     >
-      <FilterHeaderRow icon={icon} label={label} />
+      <FilterHeaderRow icon={icon} label={label} info={info} />
       <div
         style={{
           display: "flex",
@@ -417,9 +497,11 @@ function ChipFilter({
 function FilterHeaderRow({
   icon,
   label,
+  info,
 }: {
   icon: React.ReactNode;
   label: string;
+  info: InfoConfig;
 }) {
   return (
     <div
@@ -451,7 +533,12 @@ function FilterHeaderRow({
           {label}
         </span>
       </div>
-      <IconCirlceInfo size="sm" color="var(--colors-icon-secondary)" />
+      <InfoTooltipButton
+        title={info.title}
+        sections={info.sections}
+        tip={info.tip}
+        ariaLabel={`${label} info`}
+      />
     </div>
   );
 }
