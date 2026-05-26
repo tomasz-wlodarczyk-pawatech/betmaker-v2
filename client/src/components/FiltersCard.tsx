@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Button, Chip, Input } from "@aliengain/components";
 import {
   IconChevronDown,
@@ -14,6 +14,7 @@ import {
 } from "@aliengain/icons";
 import InfoTooltipButton from "./InfoTooltipButton";
 import type { InfoSection } from "./InfoModal";
+import { DualSliderTrack } from "./DualSliderTrack";
 
 const LEG_ODDS_MIN = 1.1;
 const LEG_ODDS_MAX = 100;
@@ -49,6 +50,14 @@ const FiltersCard = memo(function FiltersCard({
     onModeChange("all");
     onTimeChange("any");
   }, [onModeChange, onTimeChange]);
+
+  const dirty =
+    legOdds[0] !== DEFAULT_LEG_ODDS[0] ||
+    legOdds[1] !== DEFAULT_LEG_ODDS[1] ||
+    legs[0] !== DEFAULT_LEGS[0] ||
+    legs[1] !== DEFAULT_LEGS[1] ||
+    mode !== "all" ||
+    time !== "any";
 
   return (
     <div
@@ -92,19 +101,21 @@ const FiltersCard = memo(function FiltersCard({
                 letterSpacing: "0.04em",
               }}
             />
-            <Button
-              title="RESET FILTERS"
-              variant="tertiary"
-              size="sm"
-              fullWidth
-              leftIcon={<IconRotateCw size="sm" />}
-              onClick={handleReset}
-              style={{
-                flex: "1 1 0",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            />
+            {dirty && (
+              <Button
+                title="RESET FILTERS"
+                variant="tertiary"
+                size="sm"
+                fullWidth
+                leftIcon={<IconRotateCw size="sm" />}
+                onClick={handleReset}
+                style={{
+                  flex: "1 1 0",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              />
+            )}
           </div>
 
           <RangeFilter
@@ -114,6 +125,7 @@ const FiltersCard = memo(function FiltersCard({
             max={LEG_ODDS_MAX}
             step={0.1}
             value={legOdds}
+            defaultValue={DEFAULT_LEG_ODDS}
             onChange={setLegOdds}
             info={{
               title: "Leg Odds",
@@ -140,6 +152,7 @@ const FiltersCard = memo(function FiltersCard({
             max={LEGS_MAX}
             step={1}
             value={legs}
+            defaultValue={DEFAULT_LEGS}
             onChange={setLegs}
             info={{
               title: "Legs",
@@ -319,6 +332,7 @@ interface RangeFilterProps {
   max: number;
   step: number;
   value: [number, number];
+  defaultValue: [number, number];
   onChange: (next: [number, number]) => void;
   info: InfoConfig;
 }
@@ -330,6 +344,7 @@ function RangeFilter({
   max,
   step,
   value,
+  defaultValue,
   onChange,
   info,
 }: RangeFilterProps) {
@@ -338,6 +353,8 @@ function RangeFilter({
   const decimals = step < 1 ? 1 : 0;
   const format = (n: number) =>
     decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+  const pristine =
+    value[0] === defaultValue[0] && value[1] === defaultValue[1];
 
   const clamp = useCallback(
     (n: number) => Math.min(max, Math.max(min, n)),
@@ -396,7 +413,8 @@ function RangeFilter({
             fullWidth
             type="text"
             inputMode="decimal"
-            value={minDraft ?? format(value[0])}
+            value={minDraft ?? (pristine ? "" : format(value[0]))}
+            placeholder={format(defaultValue[0])}
             onChange={(e) => setMinDraft(e.target.value)}
             onBlur={commitMin}
             onKeyDown={(e) => {
@@ -408,7 +426,8 @@ function RangeFilter({
             fullWidth
             type="text"
             inputMode="decimal"
-            value={maxDraft ?? format(value[1])}
+            value={maxDraft ?? (pristine ? "" : format(value[1]))}
+            placeholder={format(defaultValue[1])}
             onChange={(e) => setMaxDraft(e.target.value)}
             onBlur={commitMax}
             onKeyDown={(e) => {
@@ -538,145 +557,6 @@ function FilterHeaderRow({
         sections={info.sections}
         tip={info.tip}
         ariaLabel={`${label} info`}
-      />
-    </div>
-  );
-}
-
-interface DualSliderTrackProps {
-  min: number;
-  max: number;
-  step: number;
-  value: [number, number];
-  onChange: (next: [number, number]) => void;
-  label: string;
-}
-
-function DualSliderTrack({
-  min,
-  max,
-  step,
-  value,
-  onChange,
-  label,
-}: DualSliderTrackProps) {
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const draggingRef = useRef<"min" | "max" | null>(null);
-  const valueRef = useRef(value);
-  const onChangeRef = useRef(onChange);
-  valueRef.current = value;
-  onChangeRef.current = onChange;
-  const range = max - min;
-  const toPercent = (v: number) => ((v - min) / range) * 100;
-  const startPercent = toPercent(value[0]);
-  const endPercent = toPercent(value[1]);
-
-  const snap = useCallback(
-    (raw: number) => {
-      const stepped = Math.round((raw - min) / step) * step + min;
-      const decimals = step < 1 ? 1 : 0;
-      const factor = Math.pow(10, decimals);
-      return Math.round(stepped * factor) / factor;
-    },
-    [min, step],
-  );
-
-  const valueFromClientX = useCallback(
-    (clientX: number) => {
-      const node = trackRef.current;
-      if (!node) return min;
-      const rect = node.getBoundingClientRect();
-      const ratio = (clientX - rect.left) / rect.width;
-      const clamped = Math.min(1, Math.max(0, ratio));
-      return snap(min + clamped * range);
-    },
-    [min, range, snap],
-  );
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const thumb = draggingRef.current;
-      if (!thumb) return;
-      const next = valueFromClientX(e.clientX);
-      const [v0, v1] = valueRef.current;
-      if (thumb === "min") {
-        if (next === v0) return;
-        onChangeRef.current([Math.min(next, v1), v1]);
-      } else {
-        if (next === v1) return;
-        onChangeRef.current([v0, Math.max(next, v0)]);
-      }
-    };
-    const onUp = () => {
-      draggingRef.current = null;
-      document.body.style.userSelect = "";
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [valueFromClientX]);
-
-  const startDrag = (thumb: "min" | "max") => (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    draggingRef.current = thumb;
-    document.body.style.userSelect = "none";
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-  };
-
-  const handleTrackPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).classList.contains("odds-range-thumb")) {
-      return;
-    }
-    const next = valueFromClientX(e.clientX);
-    const [v0, v1] = valueRef.current;
-    const closerToMin = Math.abs(next - v0) <= Math.abs(next - v1);
-    const thumb: "min" | "max" = closerToMin ? "min" : "max";
-    if (thumb === "min") {
-      onChangeRef.current([Math.min(next, v1), v1]);
-    } else {
-      onChangeRef.current([v0, Math.max(next, v0)]);
-    }
-    draggingRef.current = thumb;
-    document.body.style.userSelect = "none";
-  };
-
-  return (
-    <div
-      ref={trackRef}
-      className="odds-range-track"
-      onPointerDown={handleTrackPointerDown}
-      style={
-        {
-          "--range-start": `${startPercent}%`,
-          "--range-end": `${endPercent}%`,
-        } as React.CSSProperties
-      }
-    >
-      <button
-        type="button"
-        className="odds-range-thumb"
-        aria-label={`${label} minimum`}
-        aria-valuemin={min}
-        aria-valuemax={value[1]}
-        aria-valuenow={value[0]}
-        onPointerDown={startDrag("min")}
-        style={{ left: `${startPercent}%` }}
-      />
-      <button
-        type="button"
-        className="odds-range-thumb"
-        aria-label={`${label} maximum`}
-        aria-valuemin={value[0]}
-        aria-valuemax={max}
-        aria-valuenow={value[1]}
-        onPointerDown={startDrag("max")}
-        style={{ left: `${endPercent}%` }}
       />
     </div>
   );

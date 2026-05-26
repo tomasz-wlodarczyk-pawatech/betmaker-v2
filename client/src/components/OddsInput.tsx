@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, memo } from "react";
 import { IconButton, Input, Tabs } from "@aliengain/components";
 import { IconChevronLeft, IconChevronRight } from "@aliengain/icons";
+import { DualSliderTrack } from "./DualSliderTrack";
 
 interface OddsInputProps {
   targetOdds: number;
@@ -9,25 +10,45 @@ interface OddsInputProps {
   disabled?: boolean;
 }
 
-const MIN_ODDS = 2;
+const MIN_ODDS = 1.01;
 const MAX_ODDS = 1000;
 const TOLERANCE = 0.15;
+
+type Mode = "exact" | "range";
+
+const formatOdds = (n: number): string => {
+  const rounded = Math.round(n);
+  return Math.abs(n - rounded) < 0.005 ? String(rounded) : n.toFixed(2);
+};
+
+const computeRange = (odds: number): [number, number] => {
+  const tol = odds * TOLERANCE;
+  const round =
+    odds < 5
+      ? (n: number) => Math.round(n * 100) / 100
+      : (n: number) => Math.round(n);
+  const minR = Math.max(MIN_ODDS, round(odds - tol));
+  const maxR = Math.max(minR, Math.min(MAX_ODDS, round(odds + tol)));
+  return [minR, maxR];
+};
 
 const OddsInput = memo(function OddsInput({
   targetOdds,
   setTargetOdds,
   disabled = false,
 }: OddsInputProps) {
-  const formattedOdds = Math.round(targetOdds);
   const [inputDraft, setInputDraft] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>("exact");
+  const [rangeOdds, setRangeOdds] = useState<[number, number]>(() =>
+    computeRange(targetOdds),
+  );
+  const [minDraft, setMinDraft] = useState<string | null>(null);
+  const [maxDraft, setMaxDraft] = useState<string | null>(null);
 
   const range = useMemo(() => {
-    const tolerance = formattedOdds * TOLERANCE;
-    return {
-      min: Math.max(MIN_ODDS, Math.round(formattedOdds - tolerance)),
-      max: Math.round(formattedOdds + tolerance),
-    };
-  }, [formattedOdds]);
+    const [min, max] = computeRange(targetOdds);
+    return { min, max };
+  }, [targetOdds]);
 
   const broadcastOdds = useCallback((value: number) => {
     window.parent.postMessage(
@@ -53,12 +74,12 @@ const OddsInput = memo(function OddsInput({
   );
 
   const decreaseOdds = useCallback(
-    () => updateOdds(targetOdds - 1),
+    () => updateOdds(Math.round(targetOdds) - 1),
     [targetOdds, updateOdds],
   );
 
   const increaseOdds = useCallback(
-    () => updateOdds(targetOdds + 1),
+    () => updateOdds(Math.round(targetOdds) + 1),
     [targetOdds, updateOdds],
   );
 
@@ -71,7 +92,7 @@ const OddsInput = memo(function OddsInput({
 
   const commitInput = useCallback(() => {
     if (inputDraft === null) return;
-    const parsed = parseInt(inputDraft, 10);
+    const parsed = parseFloat(inputDraft.replace(",", "."));
     if (Number.isFinite(parsed)) updateOdds(parsed);
     setInputDraft(null);
   }, [inputDraft, updateOdds]);
@@ -85,19 +106,58 @@ const OddsInput = memo(function OddsInput({
     [],
   );
 
-  const inputValue = inputDraft ?? String(formattedOdds);
+  const clampOdds = useCallback(
+    (n: number) => Math.min(MAX_ODDS, Math.max(MIN_ODDS, n)),
+    [],
+  );
+
+  const commitRangeMin = useCallback(() => {
+    if (minDraft === null) return;
+    const parsed = parseFloat(minDraft.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      const next = Math.min(clampOdds(parsed), rangeOdds[1]);
+      setRangeOdds([next, rangeOdds[1]]);
+    }
+    setMinDraft(null);
+  }, [minDraft, clampOdds, rangeOdds]);
+
+  const commitRangeMax = useCallback(() => {
+    if (maxDraft === null) return;
+    const parsed = parseFloat(maxDraft.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      const next = Math.max(clampOdds(parsed), rangeOdds[0]);
+      setRangeOdds([rangeOdds[0], next]);
+    }
+    setMaxDraft(null);
+  }, [maxDraft, clampOdds, rangeOdds]);
+
+  const handleModeChange = useCallback(
+    (next: Mode) => {
+      if (next === "range") {
+        setRangeOdds(computeRange(targetOdds));
+      } else {
+        const mid = Math.round((rangeOdds[0] + rangeOdds[1]) / 2);
+        updateOdds(mid);
+      }
+      setMode(next);
+    },
+    [targetOdds, rangeOdds, updateOdds],
+  );
+
+  const inputValue = inputDraft ?? formatOdds(targetOdds);
   const sliderPercent =
     ((targetOdds - MIN_ODDS) / (MAX_ODDS - MIN_ODDS)) * 100;
   const sliderBackground = `linear-gradient(to right, var(--colors-background-brand-default) 0%, var(--colors-background-brand-default) ${sliderPercent}%, var(--colors-background-tertiary) ${sliderPercent}%, var(--colors-background-tertiary) 100%)`;
 
   return (
     <Card>
-      <Tabs activeType="exact" onActiveTypeChange={() => undefined}>
+      <Tabs
+        activeType={mode}
+        onActiveTypeChange={(v) => handleModeChange(v as Mode)}
+      >
         <Tabs.List>
           <Tabs.Tab value="exact">Exact Mode</Tabs.Tab>
-          <Tabs.Tab value="range" disabled>
-            Range Mode
-          </Tabs.Tab>
+          <Tabs.Tab value="range">Range Mode</Tabs.Tab>
         </Tabs.List>
       </Tabs>
       <div
@@ -136,73 +196,121 @@ const OddsInput = memo(function OddsInput({
             >
               Target Total Odds
             </span>
-            <span
+            {mode === "exact" && (
+              <span
+                style={{
+                  fontFamily: "Roboto, sans-serif",
+                  fontSize: "0.75rem",
+                  lineHeight: "1rem",
+                  fontWeight: 400,
+                  color: "var(--colors-text-secondary)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                ±15% ({formatOdds(range.min)} - {formatOdds(range.max)})
+              </span>
+            )}
+          </div>
+
+          {mode === "exact" ? (
+            <div
               style={{
-                fontFamily: "Roboto, sans-serif",
-                fontSize: "0.75rem",
-                lineHeight: "1rem",
-                fontWeight: 400,
-                color: "var(--colors-text-secondary)",
-                fontVariantNumeric: "tabular-nums",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--spacing-xs, 0.5rem)",
               }}
             >
-              ±15% ({range.min} - {range.max})
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--spacing-xs, 0.5rem)",
-            }}
-          >
-            <IconButton
-              aria-label="Decrease odds"
-              icon={<IconChevronLeft size="md" />}
-              variant="tonal"
-              buttonStyle="square"
-              size="default"
-              onClick={decreaseOdds}
-              disabled={disabled || targetOdds <= MIN_ODDS}
-            />
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={MIN_ODDS}
-              max={MAX_ODDS}
-              value={inputValue}
-              onChange={handleInputChange}
-              onBlur={commitInput}
-              onKeyDown={handleInputKeyDown}
-              disabled={disabled}
-              fullWidth
-              aria-label="Target odds"
-            />
-            <IconButton
-              aria-label="Increase odds"
-              icon={<IconChevronRight size="md" />}
-              variant="tonal"
-              buttonStyle="square"
-              size="default"
-              onClick={increaseOdds}
-              disabled={disabled || targetOdds >= MAX_ODDS}
-            />
-          </div>
+              <IconButton
+                aria-label="Decrease odds"
+                icon={<IconChevronLeft size="md" />}
+                variant="tonal"
+                buttonStyle="square"
+                size="default"
+                onClick={decreaseOdds}
+                disabled={disabled || targetOdds <= MIN_ODDS}
+              />
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={commitInput}
+                onKeyDown={handleInputKeyDown}
+                disabled={disabled}
+                fullWidth
+                aria-label="Target odds"
+              />
+              <IconButton
+                aria-label="Increase odds"
+                icon={<IconChevronRight size="md" />}
+                variant="tonal"
+                buttonStyle="square"
+                size="default"
+                onClick={increaseOdds}
+                disabled={disabled || targetOdds >= MAX_ODDS}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "stretch",
+                gap: "var(--spacing-xs, 0.5rem)",
+              }}
+            >
+              <Input
+                fullWidth
+                type="text"
+                inputMode="decimal"
+                value={minDraft ?? formatOdds(rangeOdds[0])}
+                onChange={(e) => setMinDraft(e.target.value)}
+                onBlur={commitRangeMin}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                disabled={disabled}
+                aria-label="Target odds minimum"
+              />
+              <Input
+                fullWidth
+                type="text"
+                inputMode="decimal"
+                value={maxDraft ?? formatOdds(rangeOdds[1])}
+                onChange={(e) => setMaxDraft(e.target.value)}
+                onBlur={commitRangeMax}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                }}
+                disabled={disabled}
+                aria-label="Target odds maximum"
+              />
+            </div>
+          )}
         </div>
 
-        <input
-          type="range"
-          className="odds-range"
-          min={MIN_ODDS}
-          max={MAX_ODDS}
-          step={1}
-          value={targetOdds}
-          onChange={handleSliderChange}
-          disabled={disabled}
-          aria-label="Target odds slider"
-          style={{ background: sliderBackground }}
-        />
+        {mode === "exact" ? (
+          <input
+            type="range"
+            className="odds-range"
+            min={MIN_ODDS}
+            max={MAX_ODDS}
+            step={0.01}
+            value={targetOdds}
+            onChange={handleSliderChange}
+            disabled={disabled}
+            aria-label="Target odds slider"
+            style={{ background: sliderBackground }}
+          />
+        ) : (
+          <DualSliderTrack
+            min={MIN_ODDS}
+            max={MAX_ODDS}
+            step={0.01}
+            value={rangeOdds}
+            onChange={setRangeOdds}
+            label="Target odds range"
+          />
+        )}
       </div>
     </Card>
   );
