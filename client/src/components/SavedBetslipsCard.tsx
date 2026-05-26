@@ -8,6 +8,7 @@ import {
   IconX,
 } from "@aliengain/icons";
 import { SavedBetslip, useSavedBetslips } from "@/hooks/use-saved-betslips";
+import SavedBetslipDetails from "./SavedBetslipDetails";
 
 const MODE_LABEL: Record<SavedBetslip["mode"], string> = {
   all: "All",
@@ -35,6 +36,7 @@ function formatOdds(value: number): string {
 const SavedBetslipsCard = memo(function SavedBetslipsCard() {
   const { slips, remove } = useSavedBetslips();
   const [open, setOpen] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleShare = useCallback((slip: SavedBetslip) => {
     const url = `${slip.domain}/?bookingCode=${slip.bookingCode}`;
@@ -50,6 +52,39 @@ const SavedBetslipsCard = memo(function SavedBetslipsCard() {
       void (nav as any).clipboard.writeText(text);
     }
   }, []);
+
+  const handleUse = useCallback((slip: SavedBetslip) => {
+    const url = slip.domain
+      ? `${slip.domain}/?bookingCode=${slip.bookingCode}`
+      : "";
+    window.parent.postMessage(
+      {
+        type: "generated_booking_code",
+        bookingCode: slip.bookingCode,
+        domain: slip.domain,
+      },
+      "*",
+    );
+    if (url) {
+      window.parent?.postMessage(
+        { type: "CLOSE", payload: { redirectUrl: url } },
+        "*",
+      );
+    }
+    setExpandedId(null);
+  }, []);
+
+  const handleDelete = useCallback(
+    (slip: SavedBetslip) => {
+      remove(slip.id);
+      setExpandedId(null);
+    },
+    [remove],
+  );
+
+  const expandedSlip = expandedId
+    ? slips.find((s) => s.id === expandedId) ?? null
+    : null;
 
   if (slips.length === 0) return null;
 
@@ -76,9 +111,19 @@ const SavedBetslipsCard = memo(function SavedBetslipsCard() {
               slip={slip}
               onShare={handleShare}
               onRemove={remove}
+              onExpand={setExpandedId}
             />
           ))}
         </div>
+      )}
+      {expandedSlip && (
+        <SavedBetslipDetails
+          slip={expandedSlip}
+          onClose={() => setExpandedId(null)}
+          onUse={handleUse}
+          onDelete={handleDelete}
+          onShare={handleShare}
+        />
       )}
     </div>
   );
@@ -161,14 +206,26 @@ function SavedBetslipRow({
   slip,
   onShare,
   onRemove,
+  onExpand,
 }: {
   slip: SavedBetslip;
   onShare: (slip: SavedBetslip) => void;
   onRemove: (id: string) => void;
+  onExpand: (id: string) => void;
 }) {
   const legs = slip.selections.length;
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Open saved betslip ${slip.bookingCode}`}
+      onClick={() => onExpand(slip.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onExpand(slip.id);
+        }
+      }}
       style={{
         display: "flex",
         alignItems: "center",
@@ -178,6 +235,7 @@ function SavedBetslipRow({
         border: "1px solid var(--colors-border-default, #e4e6e7)",
         borderRadius: "var(--radius-lg, 0.75rem)",
         padding: "var(--spacing-xs, 0.5rem)",
+        cursor: "pointer",
       }}
     >
       <div
@@ -275,7 +333,10 @@ function SavedBetslipRow({
           variant="tertiary"
           size="sm"
           buttonStyle="circle"
-          onClick={() => onShare(slip)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare(slip);
+          }}
         />
         <IconButton
           aria-label={`Remove betslip ${slip.bookingCode}`}
@@ -283,7 +344,10 @@ function SavedBetslipRow({
           variant="tertiary"
           size="sm"
           buttonStyle="circle"
-          onClick={() => onRemove(slip.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(slip.id);
+          }}
         />
       </div>
     </div>

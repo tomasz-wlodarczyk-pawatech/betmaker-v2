@@ -1,6 +1,7 @@
 import { memo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Toast } from "@aliengain/components";
+import { IconCheck } from "@aliengain/icons";
 
 interface SaveToastProps {
   bookingCode: string;
@@ -33,7 +34,16 @@ const SaveToast = memo(function SaveToast({
       }}
     >
       <div style={{ pointerEvents: "auto" }}>
-        <Toast variant="success" onClose={onClose}>
+        <Toast
+          variant="default"
+          icon={
+            <IconCheck
+              size="md"
+              color="var(--colors-icon-primary-inverse, #ffffff)"
+            />
+          }
+          onClose={onClose}
+        >
           <div
             style={{
               display: "flex",
