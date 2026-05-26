@@ -1,11 +1,19 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { SegmentedControl } from "@aliengain/components";
 import { IconBetslip } from "@aliengain/icons";
 import InfoTooltipButton from "./InfoTooltipButton";
 
-const BetslipTypeCard = memo(function BetslipTypeCard() {
-  const [betslipType, setBetslipType] = useState<"target" | "random">("target");
+export type BetslipType = "target" | "random";
 
+interface BetslipTypeCardProps {
+  value: BetslipType;
+  onChange: (next: BetslipType) => void;
+}
+
+const BetslipTypeCard = memo(function BetslipTypeCard({
+  value,
+  onChange,
+}: BetslipTypeCardProps) {
   return (
     <section
       style={{
@@ -72,10 +80,10 @@ const BetslipTypeCard = memo(function BetslipTypeCard() {
           fullWidth
           items={[
             { value: "target", label: "Target" },
-            { value: "random", label: "Random", disabled: true },
+            { value: "random", label: "Random" },
           ]}
-          value={betslipType}
-          onChange={(value) => setBetslipType(value as "target" | "random")}
+          value={value}
+          onChange={(next) => onChange(next as BetslipType)}
         />
       </div>
     </section>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Button } from "@aliengain/components";
-import BetslipTypeCard from "@/components/BetslipTypeCard";
+import BetslipTypeCard, { type BetslipType } from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
 import FiltersCard, {
   type ModeId,
@@ -56,6 +56,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   });
   const [mode, setMode] = useState<ModeId>("all");
   const [time, setTime] = useState<TimeId>("any");
+  const [betslipType, setBetslipType] = useState<BetslipType>("target");
   const [savedToast, setSavedToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -129,7 +130,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
 
   return (
     <>
-      <BetslipTypeCard />
+      <BetslipTypeCard value={betslipType} onChange={setBetslipType} />
 
       <div
         style={{
@@ -139,12 +140,14 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           gap: "0.75rem",
         }}
       >
-        <OddsInput
-          targetOdds={targetOdds}
-          setTargetOdds={setTargetOdds}
-          onGenerate={handleGenerateBetslip}
-          disabled={processing}
-        />
+        {betslipType === "target" && (
+          <OddsInput
+            targetOdds={targetOdds}
+            setTargetOdds={setTargetOdds}
+            onGenerate={handleGenerateBetslip}
+            disabled={processing}
+          />
+        )}
 
         <FiltersCard
           mode={mode}

@@ -16,7 +16,7 @@ import InfoTooltipButton from "./InfoTooltipButton";
 import type { InfoSection } from "./InfoModal";
 import { DualSliderTrack } from "./DualSliderTrack";
 
-const LEG_ODDS_MIN = 1.1;
+const LEG_ODDS_MIN = 1.01;
 const LEG_ODDS_MAX = 100;
 const LEGS_MIN = 1;
 const LEGS_MAX = 60;
@@ -49,6 +49,28 @@ const FiltersCard = memo(function FiltersCard({
     setLegs(DEFAULT_LEGS);
     onModeChange("all");
     onTimeChange("any");
+  }, [onModeChange, onTimeChange]);
+
+  const handleRandomise = useCallback(() => {
+    const oddsA = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
+    const oddsB = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
+    const roundOdds = (n: number) => Math.round(n * 100) / 100;
+    setLegOdds([
+      roundOdds(Math.min(oddsA, oddsB)),
+      roundOdds(Math.max(oddsA, oddsB)),
+    ]);
+
+    const legsA =
+      Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
+    const legsB =
+      Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
+    setLegs([Math.min(legsA, legsB), Math.max(legsA, legsB)]);
+
+    const modes: ModeId[] = ["all", "hot", "fav"];
+    onModeChange(modes[Math.floor(Math.random() * modes.length)]);
+
+    const times: TimeId[] = ["any", "today", "3h", "48h", "72h"];
+    onTimeChange(times[Math.floor(Math.random() * times.length)]);
   }, [onModeChange, onTimeChange]);
 
   const dirty =
@@ -95,6 +117,7 @@ const FiltersCard = memo(function FiltersCard({
               variant="tonal"
               size="sm"
               fullWidth
+              onClick={handleRandomise}
               style={{
                 flex: "1 1 0",
                 textTransform: "uppercase",
@@ -123,7 +146,7 @@ const FiltersCard = memo(function FiltersCard({
             label="Leg Odds"
             min={LEG_ODDS_MIN}
             max={LEG_ODDS_MAX}
-            step={0.1}
+            step={0.01}
             value={legOdds}
             defaultValue={DEFAULT_LEG_ODDS}
             onChange={setLegOdds}
@@ -350,9 +373,11 @@ function RangeFilter({
 }: RangeFilterProps) {
   const [minDraft, setMinDraft] = useState<string | null>(null);
   const [maxDraft, setMaxDraft] = useState<string | null>(null);
-  const decimals = step < 1 ? 1 : 0;
-  const format = (n: number) =>
-    decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+  const decimals = step >= 1 ? 0 : step >= 0.1 ? 1 : 2;
+  const format = (n: number) => {
+    const rounded = Math.round(n);
+    return Math.abs(n - rounded) < 0.005 ? String(rounded) : n.toFixed(decimals);
+  };
   const pristine =
     value[0] === defaultValue[0] && value[1] === defaultValue[1];
 
