@@ -117,7 +117,7 @@ const ShareDropdown = memo(function ShareDropdown({
 
   return (
     <>
-      <Dropdown open={open} onOpenChange={setOpen} sideOffset={6}>
+      <Dropdown open={open} onOpenChange={setOpen}>
         <Dropdown.Trigger>
           <IconButton
             aria-label={ariaLabel}

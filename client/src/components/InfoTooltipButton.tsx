@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { IconCirlceInfo } from "@aliengain/icons";
+import { IconCircleInfo } from "@aliengain/icons";
 import InfoModal, { type InfoSection } from "./InfoModal";
 
 interface InfoTooltipButtonProps {
@@ -58,7 +58,7 @@ const InfoTooltipButton = memo(function InfoTooltipButton({
           }}
           style={triggerStyle}
         >
-          <IconCirlceInfo size="sm" color="var(--colors-icon-primary)" />
+          <IconCircleInfo size="sm" color="var(--colors-icon-primary)" />
         </span>
       ) : (
         <button
@@ -67,7 +67,7 @@ const InfoTooltipButton = memo(function InfoTooltipButton({
           onClick={handleOpen}
           style={triggerStyle}
         >
-          <IconCirlceInfo size="sm" color="var(--colors-icon-primary)" />
+          <IconCircleInfo size="sm" color="var(--colors-icon-primary)" />
         </button>
       )}
       <InfoModal

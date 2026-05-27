@@ -11,9 +11,9 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@aliengain/components": "0.232.38",
-    "@aliengain/icons": "0.232.38",
-    "@aliengain/tokens": "0.232.38",
+    "@aliengain/components": "0.234.10",
+    "@aliengain/icons": "0.234.10",
+    "@aliengain/tokens": "0.234.10",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
     "@tanstack/react-query": "^5.60.5",
