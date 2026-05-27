@@ -17,14 +17,56 @@ export default function ThemeSync() {
   const { setTheme } = useTheme();
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent<ThemeMessage>) => {
-      if (event.source !== window.parent) return;
-      if (event.data?.type !== "THEME_CHANGED") return;
+    // DEBUG: tymczasowe logi do diagnozy przepływu theme — usuń po naprawie.
+    console.log(
+      "[ThemeSync] listener aktywny | isTop=",
+      window.self === window.top,
+      "| data-theme na <html>=",
+      document.documentElement.getAttribute("data-theme"),
+    );
 
-      const theme = event.data.payload?.theme;
-      if (isValidTheme(theme)) {
-        setTheme(theme);
+    const handleMessage = (event: MessageEvent<ThemeMessage>) => {
+      // 1) KAŻDA wiadomość — zanim cokolwiek odfiltrujemy.
+      console.log(
+        "[ThemeSync] message:",
+        event.data,
+        "| origin=",
+        event.origin,
+        "| source===parent?",
+        event.source === window.parent,
+      );
+
+      // 2) Bramka źródła (one-way: akceptujemy tylko od rodzica/hosta).
+      if (event.source !== window.parent) {
+        console.log("[ThemeSync] ↪ pominięte: source !== window.parent");
+        return;
       }
+
+      // 3) Bramka typu.
+      if (event.data?.type !== "THEME_CHANGED") {
+        console.log(
+          "[ThemeSync] ↪ pominięte: type !== 'THEME_CHANGED' (dostałem:",
+          event.data?.type,
+          ")",
+        );
+        return;
+      }
+
+      // 4) Walidacja wartości.
+      const theme = event.data.payload?.theme;
+      if (!isValidTheme(theme)) {
+        console.warn(
+          "[ThemeSync] ⚠ THEME_CHANGED dotarł, ale payload.theme jest zły:",
+          theme,
+          "| pełny data:",
+          event.data,
+        );
+        return;
+      }
+
+      // 5) Sukces — nakładamy theme (pawablox ustawi data-theme na <html>).
+      console.log("[ThemeSync] ✅ setTheme(", theme, ")");
+      setTheme(theme);
     };
 
     window.addEventListener("message", handleMessage);
