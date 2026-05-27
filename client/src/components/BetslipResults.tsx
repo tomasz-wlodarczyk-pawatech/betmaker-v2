@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Alert,
@@ -11,7 +11,6 @@ import {
   IconBookmark,
   IconFlameFilled,
   IconRotateCw,
-  IconShare,
   IconX,
 } from "@aliengain/icons";
 import { generateBookingCode } from "@/lib/api";
@@ -19,6 +18,7 @@ import { getCountryByBrand, useCountries } from "@/hooks/use-countries";
 import { useSavedBetslips } from "@/hooks/use-saved-betslips";
 import { BetSlipResult, BetSlipSelection } from "@/types";
 import { type ModeId, type TimeId } from "@/components/FiltersCard";
+import ShareDropdown from "@/components/ShareDropdown";
 
 interface BetslipResultsProps {
   result: BetSlipResult;
@@ -43,6 +43,7 @@ const BetslipResults = memo(function BetslipResults({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
   const { data: countries } = useCountries();
   const { add: addSavedBetslip } = useSavedBetslips();
 
@@ -60,21 +61,41 @@ const BetslipResults = memo(function BetslipResults({
     onClose();
   }, [onClose]);
 
-  const handleShare = useCallback(() => {
-    const text = result.selections
+  const shareText = useMemo(() => {
+    const lines = result.selections
       .map(
         (s) =>
           `${s.eventName} — ${s.marketName}: ${s.selectionName} @ ${s.odds}`,
       )
       .join("\n");
-    const body = `Total Odds: ${result.totalOdds.toFixed(2)}\n${text}`;
-    const nav = typeof navigator === "undefined" ? null : navigator;
-    if (nav && typeof (nav as any).share === "function") {
-      void (nav as any).share({ title: "Betslip", text: body }).catch(() => undefined);
-    } else if (nav && (nav as any).clipboard?.writeText) {
-      void (nav as any).clipboard.writeText(body);
-    }
+    return `Check out my betslip on betPawa — total odds ${result.totalOdds.toFixed(2)}.\n${lines}`;
   }, [result]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setShareUrl(undefined);
+    if (selectionIds.length === 0) return;
+    void (async () => {
+      try {
+        const bookingData = await generateBookingCode(
+          countryData?.countryIso2Code?.toLowerCase() ?? "gh",
+          selectionIds,
+          brandIdentifier,
+        );
+        if (cancelled) return;
+        if (bookingData?.bookingCode && bookingData?.domain) {
+          setShareUrl(
+            `${bookingData.domain}/?bookingCode=${bookingData.bookingCode}`,
+          );
+        }
+      } catch {
+        // share will fall back to text-only
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectionIds, countryData, brandIdentifier]);
 
   const handleSaveForLater = useCallback(async () => {
     if (isSaving) return;
@@ -175,7 +196,8 @@ const BetslipResults = memo(function BetslipResults({
         <ResultsHeader
           totalOdds={result.totalOdds}
           legs={result.selections.length}
-          onShare={handleShare}
+          shareText={shareText}
+          shareUrl={shareUrl}
           onClose={handleClose}
         />
 
@@ -273,12 +295,14 @@ const BetslipResults = memo(function BetslipResults({
 function ResultsHeader({
   totalOdds,
   legs,
-  onShare,
+  shareText,
+  shareUrl,
   onClose,
 }: {
   totalOdds: number;
   legs: number;
-  onShare: () => void;
+  shareText: string;
+  shareUrl?: string;
   onClose: () => void;
 }) {
   return (
@@ -321,14 +345,7 @@ function ResultsHeader({
           gap: "var(--spacing-sm, 0.75rem)",
         }}
       >
-        <IconButton
-          aria-label="Share"
-          icon={<IconShare size="sm" />}
-          variant="tertiary"
-          size="sm"
-          buttonStyle="square"
-          onClick={onShare}
-        />
+        <ShareDropdown shareText={shareText} shareUrl={shareUrl} />
         <IconButton
           aria-label="Close"
           icon={<IconX size="sm" />}

@@ -6,6 +6,20 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <script>
+      // Seed the initial theme from ?theme= before the bundle loads so the first paint
+      // matches the embedding host (no light flash). We also write pawablox ThemeProvider's
+      // own localStorage key so it initialises to this value instead of resetting it on mount.
+      (function () {
+        try {
+          var t = new URLSearchParams(window.location.search).get("theme");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+            localStorage.setItem("pawablox-theme", t);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

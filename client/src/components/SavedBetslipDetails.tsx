@@ -1,16 +1,16 @@
 import { memo, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Backdrop, Badge, Button, IconButton } from "@aliengain/components";
-import { IconFlameFilled, IconShare, IconX } from "@aliengain/icons";
+import { IconFlameFilled, IconX } from "@aliengain/icons";
 import { SavedBetslip } from "@/hooks/use-saved-betslips";
 import { BetSlipSelection } from "@/types";
+import ShareDropdown from "@/components/ShareDropdown";
 
 interface SavedBetslipDetailsProps {
   slip: SavedBetslip;
   onClose: () => void;
   onUse: (slip: SavedBetslip) => void;
   onDelete: (slip: SavedBetslip) => void;
-  onShare: (slip: SavedBetslip) => void;
 }
 
 const SavedBetslipDetails = memo(function SavedBetslipDetails({
@@ -18,11 +18,20 @@ const SavedBetslipDetails = memo(function SavedBetslipDetails({
   onClose,
   onUse,
   onDelete,
-  onShare,
 }: SavedBetslipDetailsProps) {
-  const handleShare = useCallback(() => onShare(slip), [slip, onShare]);
   const handleUse = useCallback(() => onUse(slip), [slip, onUse]);
   const handleDelete = useCallback(() => onDelete(slip), [slip, onDelete]);
+
+  const shareUrl = useMemo(() => {
+    const base = slip.domain || (typeof window !== "undefined" ? window.location.origin : "");
+    if (!base) return undefined;
+    return `${base}/?bookingCode=${slip.bookingCode}`;
+  }, [slip.domain, slip.bookingCode]);
+
+  const shareText = useMemo(
+    () => `Check out my betslip on betPawa — ${slip.totalOdds.toFixed(2)} odds, code ${slip.bookingCode}.`,
+    [slip.totalOdds, slip.bookingCode],
+  );
 
   return createPortal(
     <>
@@ -36,7 +45,8 @@ const SavedBetslipDetails = memo(function SavedBetslipDetails({
         <DetailsHeader
           totalOdds={slip.totalOdds}
           legs={slip.selections.length}
-          onShare={handleShare}
+          shareText={shareText}
+          shareUrl={shareUrl}
           onClose={onClose}
         />
 
@@ -102,12 +112,14 @@ const SavedBetslipDetails = memo(function SavedBetslipDetails({
 function DetailsHeader({
   totalOdds,
   legs,
-  onShare,
+  shareText,
+  shareUrl,
   onClose,
 }: {
   totalOdds: number;
   legs: number;
-  onShare: () => void;
+  shareText: string;
+  shareUrl?: string;
   onClose: () => void;
 }) {
   return (
@@ -150,14 +162,7 @@ function DetailsHeader({
           gap: "var(--spacing-sm, 0.75rem)",
         }}
       >
-        <IconButton
-          aria-label="Share"
-          icon={<IconShare size="sm" />}
-          variant="tertiary"
-          size="sm"
-          buttonStyle="square"
-          onClick={onShare}
-        />
+        <ShareDropdown shareText={shareText} shareUrl={shareUrl} />
         <IconButton
           aria-label="Close"
           icon={<IconX size="sm" />}

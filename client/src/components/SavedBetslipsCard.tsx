@@ -1,14 +1,14 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Badge, IconButton } from "@aliengain/components";
 import {
   IconBookmark,
   IconChevronDown,
   IconChevronUp,
-  IconShare,
   IconX,
 } from "@aliengain/icons";
 import { SavedBetslip, useSavedBetslips } from "@/hooks/use-saved-betslips";
 import SavedBetslipDetails from "./SavedBetslipDetails";
+import ShareDropdown from "./ShareDropdown";
 
 const MODE_LABEL: Record<SavedBetslip["mode"], string> = {
   all: "All",
@@ -37,21 +37,6 @@ const SavedBetslipsCard = memo(function SavedBetslipsCard() {
   const { slips, remove } = useSavedBetslips();
   const [open, setOpen] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const handleShare = useCallback((slip: SavedBetslip) => {
-    const url = `${slip.domain}/?bookingCode=${slip.bookingCode}`;
-    const text = `Betslip ${slip.bookingCode} — total odds ${formatOdds(
-      slip.totalOdds,
-    )}\n${url}`;
-    const nav = typeof navigator === "undefined" ? null : navigator;
-    if (nav && typeof (nav as any).share === "function") {
-      void (nav as any)
-        .share({ title: "Betslip", text, url })
-        .catch(() => undefined);
-    } else if (nav && (nav as any).clipboard?.writeText) {
-      void (nav as any).clipboard.writeText(text);
-    }
-  }, []);
 
   const handleUse = useCallback((slip: SavedBetslip) => {
     const url = slip.domain
@@ -109,7 +94,6 @@ const SavedBetslipsCard = memo(function SavedBetslipsCard() {
             <SavedBetslipRow
               key={slip.id}
               slip={slip}
-              onShare={handleShare}
               onRemove={remove}
               onExpand={setExpandedId}
             />
@@ -122,7 +106,6 @@ const SavedBetslipsCard = memo(function SavedBetslipsCard() {
           onClose={() => setExpandedId(null)}
           onUse={handleUse}
           onDelete={handleDelete}
-          onShare={handleShare}
         />
       )}
     </div>
@@ -204,16 +187,22 @@ function SavedBetslipsHeader({
 
 function SavedBetslipRow({
   slip,
-  onShare,
   onRemove,
   onExpand,
 }: {
   slip: SavedBetslip;
-  onShare: (slip: SavedBetslip) => void;
   onRemove: (id: string) => void;
   onExpand: (id: string) => void;
 }) {
   const legs = slip.selections.length;
+  const shareUrl = useMemo(() => {
+    const base = slip.domain || (typeof window !== "undefined" ? window.location.origin : "");
+    return base ? `${base}/?bookingCode=${slip.bookingCode}` : undefined;
+  }, [slip.domain, slip.bookingCode]);
+  const shareText = useMemo(
+    () => `Check out my betslip on betPawa — ${formatOdds(slip.totalOdds)} odds, code ${slip.bookingCode}.`,
+    [slip.totalOdds, slip.bookingCode],
+  );
   return (
     <div
       role="button"
@@ -327,17 +316,13 @@ function SavedBetslipRow({
           flexShrink: 0,
         }}
       >
-        <IconButton
-          aria-label={`Share betslip ${slip.bookingCode}`}
-          icon={<IconShare size="sm" />}
-          variant="tertiary"
-          size="sm"
-          buttonStyle="circle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onShare(slip);
-          }}
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ShareDropdown
+            shareText={shareText}
+            shareUrl={shareUrl}
+            ariaLabel={`Share betslip ${slip.bookingCode}`}
+          />
+        </div>
         <IconButton
           aria-label={`Remove betslip ${slip.bookingCode}`}
           icon={<IconX size="sm" />}
