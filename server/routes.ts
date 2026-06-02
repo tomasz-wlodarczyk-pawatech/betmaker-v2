@@ -7,8 +7,13 @@ import {
   generateBetslipSchema,
   generateBookingCodeSchema,
   availableFiltersSchema,
+  switchSelectionSchema,
 } from "@shared/schema";
-import { generateBetslip } from "./services/betslipService";
+import {
+  generateBetslip,
+  findReplacementSelection,
+  filterEvents,
+} from "./services/betslipService";
 import { getPopularEvents } from "./services/pawagate";
 
 // List of supported country codes
@@ -73,6 +78,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetOdds,
         brandIdentifier,
         selectionMode,
+        minSelections,
+        maxSelections,
+        minLegOdds,
+        maxLegOdds,
+        timeRange,
         excludedLeagues,
         excludedMarkets,
       } = generateBetslipSchema.parse(req.body);
@@ -81,30 +91,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         | unknown[]
         | { status?: string; data?: unknown[] };
 
-      let events: any[] = Array.isArray(raw)
+      const allEvents: any[] = Array.isArray(raw)
         ? raw
         : Array.isArray((raw as { data?: unknown[] })?.data)
           ? ((raw as { data: unknown[] }).data as any[])
           : [];
 
-      if (excludedLeagues.length > 0 || excludedMarkets.length > 0) {
-        const leagueSet = new Set(excludedLeagues);
-        const marketSet = new Set(excludedMarkets);
-        events = events
-          .filter((e: any) => !leagueSet.has(e?.competition))
-          .map((e: any) => ({
-            ...e,
-            markets: Array.isArray(e?.markets)
-              ? e.markets.filter((m: any) => !marketSet.has(m?.name))
-              : e?.markets,
-          }))
-          .filter(
-            (e: any) => Array.isArray(e?.markets) && e.markets.length > 0,
-          );
-      }
+      const events = filterEvents(allEvents, {
+        excludedLeagues,
+        excludedMarkets,
+        timeRange,
+      });
 
       const betslip = await generateBetslip(events, targetOdds, 0.15, {
         selectionMode,
+        minSelections,
+        maxSelections,
+        minLegOdds,
+        maxLegOdds,
       });
 
       if (!betslip) {
@@ -202,6 +206,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(500).json({ message: "Failed to generate booking code" });
+    }
+  });
+
+  // Country-specific API endpoint to swap a single leg of a betslip
+  app.post("/api/:country/selection/switch", async (req, res) => {
+    try {
+      const countryCode = getCountryCode(req);
+
+      if (!countryCode) {
+        return res.status(400).json({
+          message:
+            "Invalid country code. Supported countries: " +
+            SUPPORTED_COUNTRIES.join(", "),
+        });
+      }
+
+      const {
+        brandIdentifier,
+        currentSelectionId,
+        excludeEventIds,
+        selectionMode,
+        targetOdds,
+        currentTotalOdds,
+        replacedSelectionOdds,
+        timeRange,
+        excludedLeagues,
+        excludedMarkets,
+        minLegOdds,
+        maxLegOdds,
+      } = switchSelectionSchema.parse(req.body);
+
+      const raw = (await getPopularEvents(brandIdentifier)) as
+        | unknown[]
+        | { status?: string; data?: unknown[] };
+
+      const allEvents: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { data?: unknown[] })?.data)
+          ? ((raw as { data: unknown[] }).data as any[])
+          : [];
+
+      const events = filterEvents(allEvents, {
+        excludedLeagues,
+        excludedMarkets,
+        timeRange,
+      });
+
+      const selection = findReplacementSelection(events, {
+        excludeEventIds,
+        currentSelectionId,
+        replacedSelectionOdds,
+        targetOdds,
+        currentTotalOdds,
+        selectionMode,
+        minLegOdds,
+        maxLegOdds,
+      });
+
+      // No replacement is an expected soft outcome (e.g. every fresh event is
+      // already in the slip), so return 200 with a null selection rather than
+      // an error the client would surface as a failure.
+      return res.json({ selection });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error switching selection:", error);
+      res.status(500).json({ message: "Failed to switch selection" });
     }
   });
 

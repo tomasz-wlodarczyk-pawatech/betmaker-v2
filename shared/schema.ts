@@ -67,6 +67,10 @@ export const generateBetslipSchema = z.object({
     .optional()
     .default("whenever"),
   selectionMode: z.enum(["all", "hot", "fav"]).optional().default("all"),
+  minSelections: z.number().int().min(1).optional(),
+  maxSelections: z.number().int().min(1).optional(),
+  minLegOdds: z.number().positive().optional(),
+  maxLegOdds: z.number().positive().optional(),
   randomMode: z.boolean().optional().default(false),
   excludedLeagues: z.array(z.string()).optional().default([]),
   excludedMarkets: z.array(z.string()).optional().default([]),
@@ -90,9 +94,29 @@ export const availableFiltersSchema = z.object({
   timeRange: timeRangeSchema.default("whenever"),
 });
 
+// Swap a single leg of an already-generated betslip. `selectionMode` is kept as
+// a loose string (the embedder may send values like "popular") and normalised
+// server-side to hot-vs-all. `excludeEventIds` are the events already in the
+// slip, so the replacement always comes from a fresh event.
+export const switchSelectionSchema = z.object({
+  brandIdentifier: z.string(),
+  currentSelectionId: z.string(),
+  excludeEventIds: z.array(z.string()).optional().default([]),
+  timeRange: timeRangeSchema.optional().default("whenever"),
+  selectionMode: z.string().optional().default("all"),
+  targetOdds: z.number(),
+  currentTotalOdds: z.number(),
+  replacedSelectionOdds: z.number(),
+  excludedLeagues: z.array(z.string()).optional().default([]),
+  excludedMarkets: z.array(z.string()).optional().default([]),
+  minLegOdds: z.number().positive().optional(),
+  maxLegOdds: z.number().positive().optional(),
+});
+
 export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
 export type GenerateBookingCodeRequest = z.infer<
   typeof generateBookingCodeSchema
 >;
 export type AvailableFiltersRequest = z.infer<typeof availableFiltersSchema>;
+export type SwitchSelectionRequest = z.infer<typeof switchSelectionSchema>;
 export type TimeRange = z.infer<typeof timeRangeSchema>;

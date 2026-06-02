@@ -1,11 +1,118 @@
 import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
 
+export interface EventFilterOptions {
+  excludedLeagues?: string[];
+  excludedMarkets?: string[];
+  /** "whenever" | "today" | "3h" | "48h" | "72h" — anything else means no time filter. */
+  timeRange?: string;
+}
+
+/**
+ * Upper-bound timestamp (ms) for a time-range window measured from now, or
+ * `null` when no time filter applies ("whenever"/unknown).
+ */
+function timeRangeCutoff(timeRange: string): number | null {
+  const now = Date.now();
+  const HOUR = 3_600_000;
+  switch (timeRange) {
+    case "3h":
+      return now + 3 * HOUR;
+    case "48h":
+      return now + 48 * HOUR;
+    case "72h":
+      return now + 72 * HOUR;
+    case "today": {
+      const d = new Date(now);
+      return Date.UTC(
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        23,
+        59,
+        59,
+        999,
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Apply the user-facing filters to the raw upstream events before any betslip
+ * logic runs: a kick-off time window and league/market exclusions. Events with
+ * an unparseable start time are kept (lenient) so bad timestamps never silently
+ * drop otherwise-valid events. Markets are pruned per event; an event left with
+ * no markets is dropped.
+ */
+export function filterEvents(
+  events: Event[],
+  options: EventFilterOptions = {},
+): Event[] {
+  const {
+    excludedLeagues = [],
+    excludedMarkets = [],
+    timeRange = "whenever",
+  } = options;
+
+  let result = events;
+
+  const cutoff = timeRangeCutoff(timeRange);
+  if (cutoff !== null) {
+    result = result.filter((e) => {
+      const t = Date.parse((e as { start_time?: string })?.start_time ?? "");
+      return Number.isNaN(t) ? true : t <= cutoff;
+    });
+  }
+
+  if (excludedLeagues.length > 0 || excludedMarkets.length > 0) {
+    const leagueSet = new Set(excludedLeagues);
+    const marketSet = new Set(excludedMarkets);
+    result = result
+      .filter((e: any) => !leagueSet.has(e?.competition))
+      .map((e: any) => ({
+        ...e,
+        markets: Array.isArray(e?.markets)
+          ? e.markets.filter((m: any) => !marketSet.has(m?.name))
+          : e?.markets,
+      }))
+      .filter((e: any) => Array.isArray(e?.markets) && e.markets.length > 0);
+  }
+
+  return result;
+}
+
 /**
  * Generate a betslip with selections that match the target odds
  * Optimized for speed while maintaining randomness
  */
 export interface GenerateBetslipOptions {
   selectionMode?: "all" | "hot" | "fav";
+  /** Hard lower bound on the number of legs in the generated betslip. */
+  minSelections?: number;
+  /** Hard upper bound on the number of legs in the generated betslip. */
+  maxSelections?: number;
+  /** Lower bound on each individual leg's odds. */
+  minLegOdds?: number;
+  /** Upper bound on each individual leg's odds. */
+  maxLegOdds?: number;
+}
+
+/**
+ * Keep only selections whose odds fall within the per-leg odds window. Missing
+ * bounds mean "no bound" on that side.
+ */
+function filterByLegOdds(
+  selections: HotSelection[],
+  minLegOdds?: number,
+  maxLegOdds?: number,
+): HotSelection[] {
+  if (minLegOdds == null && maxLegOdds == null) {
+    return selections;
+  }
+  const lo = minLegOdds ?? 0;
+  const hi = maxLegOdds ?? Infinity;
+  return selections.filter((s) => s.odds >= lo && s.odds <= hi);
 }
 
 export async function generateBetslip(
@@ -18,9 +125,13 @@ export async function generateBetslip(
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 1000; // 1000ms max execution time
 
-  // Extract all hot selections
-  const hotSelections = getHotSelections(events, options.selectionMode ?? "all");
-  
+  // Extract all hot selections, then narrow to the per-leg odds window.
+  const hotSelections = filterByLegOdds(
+    getHotSelections(events, options.selectionMode ?? "all"),
+    options.minLegOdds,
+    options.maxLegOdds,
+  );
+
   if (hotSelections.length === 0) {
     return null;
   }
@@ -28,75 +139,243 @@ export async function generateBetslip(
   // Define acceptable range
   const minOdds = targetOdds * (1 - tolerance);
   const maxOdds = targetOdds * (1 + tolerance);
-  
-  // Add some randomness to the search by shuffling selections
-  const shuffledSelections = [...hotSelections].sort(() => Math.random() - 0.5);
-  
-  // Use fast algorithm directly instead of trying multiple approaches
-  // Randomly choose between different algorithms for variety
-  const useGreedy = Math.random() < 0.7; // Use greedy approach 70% of the time for speed
-  
-  if (useGreedy) {
-    // Use the faster greedy approach
-    const result = findFastCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
-    if (result) {
-      return {
-        totalOdds: result.totalOdds,
-        selections: result.selections.map((s: HotSelection) => ({
-          id: s.id,
-          eventName: s.eventName,
-          eventId: s.eventId,
-          competition: s.competition,
-          marketName: s.marketName,
-          selectionName: s.name,
-          odds: s.odds.toString(),
-          startTime: s.startTime,
-          isHot: s.isHot
-        }))
-      };
-    }
-  } else {
-    // Use the optimized combination finder with a random size limit
-    const maxSize = Math.floor(Math.random() * 3) + 2; // 2-4 selections for better performance
-    const result = findOptimizedCombination(shuffledSelections, targetOdds, minOdds, maxOdds, maxSize, startTime, MAX_EXECUTION_TIME);
-    if (result) {
-      return {
-        totalOdds: result.totalOdds,
-        selections: result.selections.map((s: HotSelection) => ({
-          id: s.id,
-          eventName: s.eventName,
-          eventId: s.eventId,
-          competition: s.competition,
-          marketName: s.marketName,
-          selectionName: s.name,
-          odds: s.odds.toString(),
-          startTime: s.startTime,
-          isHot: s.isHot
-        }))
-      };
-    }
+
+  // Resolve the selection-count range as a HARD constraint. We can never use
+  // more legs than there are distinct events (one selection per event), so the
+  // upper bound is capped accordingly. Absent options fall back to "no lower
+  // bound" and "as many as there are events".
+  const distinctEvents = new Set(hotSelections.map((s) => s.eventId)).size;
+  const minSel = Math.max(1, Math.floor(options.minSelections ?? 1));
+  const maxSel = Math.min(
+    Math.floor(options.maxSelections ?? distinctEvents),
+    distinctEvents,
+  );
+
+  // Infeasible request: more legs required than there are distinct events.
+  if (minSel > maxSel) {
+    return null;
   }
 
-  // As a fallback, if we couldn't find anything, use the fastest approach
-  const result = findFastCombination(shuffledSelections, targetOdds, minOdds, maxOdds);
-  if (result) {
-    return {
-      totalOdds: result.totalOdds,
-      selections: result.selections.map((s: HotSelection) => ({
-        id: s.id,
-        eventName: s.eventName,
-        eventId: s.eventId,
-        competition: s.competition,
-        marketName: s.marketName,
-        selectionName: s.name,
-        odds: s.odds.toString(),
-        startTime: s.startTime,
-        isHot: s.isHot
-      }))
-    };
+  const toResult = (r: {
+    totalOdds: number;
+    selections: HotSelection[];
+  }): BetSlipResult => ({
+    totalOdds: r.totalOdds,
+    selections: r.selections.map((s: HotSelection) => ({
+      id: s.id,
+      eventName: s.eventName,
+      eventId: s.eventId,
+      competition: s.competition,
+      marketName: s.marketName,
+      selectionName: s.name,
+      odds: s.odds.toString(),
+      startTime: s.startTime,
+      isHot: s.isHot,
+    })),
+  });
+
+  // Primary path: build combinations that respect the leg-count range.
+  const counted = findCombinationWithCount(
+    hotSelections,
+    targetOdds,
+    minOdds,
+    maxOdds,
+    minSel,
+    maxSel,
+    startTime,
+    MAX_EXECUTION_TIME,
+  );
+  if (counted) {
+    return toResult(counted);
+  }
+
+  // Best-effort fallback ONLY when the caller imposed no real count constraint,
+  // so we never silently violate a min/max the user actually set.
+  const unconstrained =
+    minSel <= 1 && options.maxSelections == null;
+  if (unconstrained) {
+    const fast = findFastCombination(
+      hotSelections,
+      targetOdds,
+      minOdds,
+      maxOdds,
+    );
+    if (fast) {
+      return toResult(fast);
+    }
   }
 
   return null;
+}
+
+export interface SwitchSelectionOptions {
+  /** Events already used in the slip — the replacement must come from outside. */
+  excludeEventIds: string[];
+  /** The leg being replaced; excluded defensively (its event is normally in
+   * `excludeEventIds` already). */
+  currentSelectionId: string;
+  /** Odds of the leg being replaced. */
+  replacedSelectionOdds: number;
+  /** Slip's overall target odds. */
+  targetOdds: number;
+  /** Slip's current combined odds (before the swap). */
+  currentTotalOdds: number;
+  selectionMode?: string;
+  /** Lower bound on the replacement leg's odds. */
+  minLegOdds?: number;
+  /** Upper bound on the replacement leg's odds. */
+  maxLegOdds?: number;
+}
+
+/**
+ * Find a single replacement leg for a betslip swap. Picks a selection from an
+ * event not already in the slip whose odds steer the new combined odds back
+ * toward the target, with light randomness so repeat swaps vary.
+ *
+ * NOTE: only filters by event (not by league/market). A swap can therefore
+ * reintroduce a league/market the slip was originally generated with excluded —
+ * this matches the embedder's switch contract, which sends only `excludeEventIds`.
+ */
+export function findReplacementSelection(
+  events: Event[],
+  options: SwitchSelectionOptions,
+): BetSlipSelection | null {
+  const mode = options.selectionMode === "hot" ? "hot" : "all";
+  const all = filterByLegOdds(
+    getHotSelections(events, mode),
+    options.minLegOdds,
+    options.maxLegOdds,
+  );
+
+  const excluded = new Set(options.excludeEventIds);
+  const candidates = all.filter(
+    (s) => !excluded.has(s.eventId) && s.id !== options.currentSelectionId,
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  // Odds the replacement should contribute so the new combined odds land back
+  // near the target: target / (current total with the replaced leg removed).
+  const baseOdds = options.currentTotalOdds / options.replacedSelectionOdds;
+  const needed =
+    Number.isFinite(baseOdds) && baseOdds > 0
+      ? options.targetOdds / baseOdds
+      : options.replacedSelectionOdds;
+
+  candidates.sort(
+    (a, b) => Math.abs(a.odds - needed) - Math.abs(b.odds - needed),
+  );
+
+  // Random pick among the closest few for variety on repeat swaps.
+  const topN = Math.min(5, candidates.length);
+  const pick = candidates[Math.floor(Math.random() * topN)];
+
+  return {
+    id: pick.id,
+    eventName: pick.eventName,
+    eventId: pick.eventId,
+    competition: pick.competition,
+    marketName: pick.marketName,
+    selectionName: pick.name,
+    odds: pick.odds.toString(),
+    startTime: pick.startTime,
+    isHot: pick.isHot,
+  };
+}
+
+/**
+ * Build betslip combinations whose leg count falls within [minSel, maxSel] and
+ * whose combined odds land in [minOdds, maxOdds]. Each attempt picks a random
+ * target leg count `k` in range and greedily fills `k` legs, steering every
+ * pick toward the per-leg odds still needed to reach the target product. This
+ * makes the leg-count filter a hard constraint that genuinely shapes the result
+ * (unlike a collect-then-filter pass, which would rarely produce large slips).
+ */
+function findCombinationWithCount(
+  selections: HotSelection[],
+  targetOdds: number,
+  minOdds: number,
+  maxOdds: number,
+  minSel: number,
+  maxSel: number,
+  startTime: number,
+  maxExecutionTime: number,
+): { totalOdds: number; selections: HotSelection[] } | null {
+  const valid: Array<{
+    totalOdds: number;
+    selections: HotSelection[];
+    diff: number;
+  }> = [];
+
+  const MAX_ATTEMPTS = 800;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (Date.now() - startTime > maxExecutionTime) {
+      break;
+    }
+
+    // Random target leg count within the allowed range for variety.
+    const k = minSel + Math.floor(Math.random() * (maxSel - minSel + 1));
+
+    const chosen: HotSelection[] = [];
+    const usedEventIds = new Set<string>();
+    let product = 1;
+
+    for (let step = 0; step < k; step++) {
+      const remainingLegs = k - step;
+      // Odds each remaining leg should contribute, on average, to hit target.
+      const neededPerLeg = Math.pow(targetOdds / product, 1 / remainingLegs);
+
+      // Candidates: one selection per event.
+      const candidates = selections.filter(
+        (s) => !usedEventIds.has(s.eventId),
+      );
+      if (candidates.length === 0) {
+        break;
+      }
+
+      // Pick among the few selections closest to the needed per-leg odds,
+      // with a touch of randomness so repeat generations vary.
+      candidates.sort(
+        (a, b) =>
+          Math.abs(a.odds - neededPerLeg) - Math.abs(b.odds - neededPerLeg),
+      );
+      const topN = Math.min(5, candidates.length);
+      const pick = candidates[Math.floor(Math.random() * topN)];
+
+      chosen.push(pick);
+      usedEventIds.add(pick.eventId);
+      product *= pick.odds;
+    }
+
+    if (
+      chosen.length === k &&
+      product >= minOdds &&
+      product <= maxOdds
+    ) {
+      valid.push({
+        totalOdds: product,
+        selections: [...chosen],
+        diff: Math.abs(product - targetOdds),
+      });
+
+      // Enough variety collected — stop early.
+      if (valid.length >= 30) {
+        break;
+      }
+    }
+  }
+
+  if (valid.length === 0) {
+    return null;
+  }
+
+  // Prefer combinations closest to target, but randomise among the best few.
+  valid.sort((a, b) => a.diff - b.diff);
+  const topRange = Math.min(5, valid.length);
+  const selected = valid[Math.floor(Math.random() * topRange)];
+  return { totalOdds: selected.totalOdds, selections: selected.selections };
 }
 
 /**

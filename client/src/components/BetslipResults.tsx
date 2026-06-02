@@ -13,35 +13,44 @@ import {
   IconRotateCw,
   IconX,
 } from "@aliengain/icons";
-import { generateBookingCode } from "@/lib/api";
+import { generateBookingCode, switchSelection } from "@/lib/api";
 import { getCountryByBrand, useCountries } from "@/hooks/use-countries";
 import { useSavedBetslips } from "@/hooks/use-saved-betslips";
 import { BetSlipResult, BetSlipSelection } from "@/types";
 import { type ModeId, type TimeId } from "@/components/FiltersCard";
+import { type ExcludeSelection } from "@/components/ExcludeLeaguesPanel";
 import ShareDropdown from "@/components/ShareDropdown";
 
 interface BetslipResultsProps {
   result: BetSlipResult;
   targetOdds: number;
   onRegenerate: () => void;
+  onResultChange: (result: BetSlipResult) => void;
   onClose: () => void;
   brandIdentifier: string;
   mode: ModeId;
   time: TimeId;
+  excluded: ExcludeSelection;
+  legOdds: [number, number];
   onSaved: (bookingCode: string) => void;
 }
 
 const BetslipResults = memo(function BetslipResults({
   result,
+  targetOdds,
   onRegenerate,
+  onResultChange,
   onClose,
   brandIdentifier,
   mode,
   time,
+  excluded,
+  legOdds,
   onSaved,
 }: BetslipResultsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [swappingId, setSwappingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | undefined>(undefined);
   const { data: countries } = useCountries();
@@ -184,6 +193,69 @@ const BetslipResults = memo(function BetslipResults({
     }
   }, [selectionIds, countryData, brandIdentifier]);
 
+  const handleSwap = useCallback(
+    async (selection: BetSlipSelection) => {
+      if (swappingId) return;
+      try {
+        setSwappingId(selection.id);
+        setError(null);
+
+        const newSelection = await switchSelection(
+          countryData?.countryIso2Code?.toLowerCase() ?? "gh",
+          {
+            brandIdentifier,
+            currentSelectionId: selection.id,
+            excludeEventIds: result.selections.map((s) => s.eventId),
+            timeRange: time === "any" ? "whenever" : time,
+            selectionMode: mode,
+            targetOdds,
+            currentTotalOdds: result.totalOdds,
+            replacedSelectionOdds: Number(selection.odds),
+            excludedLeagues: excluded.leagues,
+            excludedMarkets: excluded.markets,
+            minLegOdds: legOdds[0],
+            maxLegOdds: legOdds[1],
+          },
+        );
+
+        if (!newSelection) {
+          setError("No alternative selection is available right now.");
+          return;
+        }
+
+        const selections = result.selections.map((s) =>
+          s.id === selection.id ? newSelection : s,
+        );
+        const totalOdds = selections.reduce(
+          (acc, s) => acc * Number(s.odds),
+          1,
+        );
+        onResultChange({ totalOdds, selections });
+      } catch (err) {
+        console.error("Error switching selection:", err);
+        setError(
+          "There was a problem switching this selection. Please try again.",
+        );
+      } finally {
+        setSwappingId(null);
+      }
+    },
+    [
+      swappingId,
+      result.selections,
+      result.totalOdds,
+      countryData,
+      brandIdentifier,
+      time,
+      mode,
+      targetOdds,
+      excluded.leagues,
+      excluded.markets,
+      legOdds,
+      onResultChange,
+    ],
+  );
+
   return createPortal(
     <>
       <Backdrop visible onClose={onClose} />
@@ -225,7 +297,8 @@ const BetslipResults = memo(function BetslipResults({
                 key={selection.id}
                 selection={selection}
                 isLast={idx === result.selections.length - 1}
-                onRefresh={onRegenerate}
+                onSwap={() => handleSwap(selection)}
+                isSwapping={swappingId === selection.id}
               />
             ))}
           </div>
@@ -393,11 +466,13 @@ function Stat({ label, value }: { label: string; value: string }) {
 function SelectionRow({
   selection,
   isLast,
-  onRefresh,
+  onSwap,
+  isSwapping,
 }: {
   selection: BetSlipSelection;
   isLast: boolean;
-  onRefresh: () => void;
+  onSwap: () => void;
+  isSwapping: boolean;
 }) {
   const { time, date } = useMemo(
     () => formatStartTime(selection.startTime),
@@ -477,12 +552,14 @@ function SelectionRow({
             {Number(selection.odds).toFixed(2)}
           </Badge>
           <IconButton
-            aria-label="Regenerate this selection"
+            aria-label="Switch this selection"
             icon={<IconRotateCw size="sm" />}
             variant="tertiary"
             size="sm"
             buttonStyle="square"
-            onClick={onRefresh}
+            onClick={onSwap}
+            isLoading={isSwapping}
+            disabled={isSwapping}
           />
         </div>
       </div>

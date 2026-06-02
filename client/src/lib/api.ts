@@ -1,12 +1,16 @@
 import { COUNTRIES } from "./countries";
 import { apiRequest, queryClient } from "./queryClient";
-import { BetSlipResult, Country } from "@/types";
+import { BetSlipResult, BetSlipSelection, Country } from "@/types";
 
 const API_BASE = "/api";
 
 export interface GenerateBetslipOptions {
   timeRange?: "whenever" | "today" | "3h" | "48h" | "72h";
   selectionMode?: "all" | "hot" | "fav";
+  minSelections?: number;
+  maxSelections?: number;
+  minLegOdds?: number;
+  maxLegOdds?: number;
   randomMode?: boolean;
   excludedLeagues?: string[];
   excludedMarkets?: string[];
@@ -35,6 +39,10 @@ export async function generateBetslip(
         targetOdds,
         brandIdentifier: countryData.brandIdentifier,
         timeRange: options?.timeRange ?? "whenever",
+        minSelections: options?.minSelections,
+        maxSelections: options?.maxSelections,
+        minLegOdds: options?.minLegOdds,
+        maxLegOdds: options?.maxLegOdds,
         selectionMode: options?.selectionMode ?? "all",
         randomMode: options?.randomMode ?? false,
         excludedLeagues: options?.excludedLeagues ?? [],
@@ -65,6 +73,34 @@ export async function fetchAvailableFilters(
     { brandIdentifier, timeRange },
   );
   return response.json();
+}
+
+export interface SwitchSelectionParams {
+  brandIdentifier: string;
+  currentSelectionId: string;
+  excludeEventIds: string[];
+  timeRange?: "whenever" | "today" | "3h" | "48h" | "72h";
+  selectionMode?: string;
+  targetOdds: number;
+  currentTotalOdds: number;
+  replacedSelectionOdds: number;
+  excludedLeagues?: string[];
+  excludedMarkets?: string[];
+  minLegOdds?: number;
+  maxLegOdds?: number;
+}
+
+export async function switchSelection(
+  countryCode: string,
+  params: SwitchSelectionParams,
+): Promise<BetSlipSelection | null> {
+  const response = await apiRequest(
+    "POST",
+    `${API_BASE}/${countryCode}/selection/switch`,
+    params,
+  );
+  const data = await response.json();
+  return data?.selection ?? null;
 }
 
 export async function generateBookingCode(

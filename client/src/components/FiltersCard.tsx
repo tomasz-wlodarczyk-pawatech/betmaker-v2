@@ -21,7 +21,7 @@ const LEG_ODDS_MAX = 100;
 const LEGS_MIN = 1;
 const LEGS_MAX = 60;
 
-const DEFAULT_LEG_ODDS: [number, number] = [LEG_ODDS_MIN, LEG_ODDS_MAX];
+export const DEFAULT_LEG_ODDS: [number, number] = [LEG_ODDS_MIN, LEG_ODDS_MAX];
 const DEFAULT_LEGS: [number, number] = [LEGS_MIN, LEGS_MAX];
 
 export type ModeId = "all" | "hot" | "fav";
@@ -32,6 +32,10 @@ interface FiltersCardProps {
   onModeChange: (next: ModeId) => void;
   time: TimeId;
   onTimeChange: (next: TimeId) => void;
+  legs: [number, number];
+  onLegsChange: (next: [number, number]) => void;
+  legOdds: [number, number];
+  onLegOddsChange: (next: [number, number]) => void;
 }
 
 const FiltersCard = memo(function FiltersCard({
@@ -39,23 +43,25 @@ const FiltersCard = memo(function FiltersCard({
   onModeChange,
   time,
   onTimeChange,
+  legs,
+  onLegsChange,
+  legOdds,
+  onLegOddsChange,
 }: FiltersCardProps) {
   const [open, setOpen] = useState(true);
-  const [legOdds, setLegOdds] = useState<[number, number]>(DEFAULT_LEG_ODDS);
-  const [legs, setLegs] = useState<[number, number]>(DEFAULT_LEGS);
 
   const handleReset = useCallback(() => {
-    setLegOdds(DEFAULT_LEG_ODDS);
-    setLegs(DEFAULT_LEGS);
+    onLegOddsChange(DEFAULT_LEG_ODDS);
+    onLegsChange(DEFAULT_LEGS);
     onModeChange("all");
     onTimeChange("any");
-  }, [onModeChange, onTimeChange]);
+  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange]);
 
   const handleRandomise = useCallback(() => {
     const oddsA = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
     const oddsB = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
     const roundOdds = (n: number) => Math.round(n * 100) / 100;
-    setLegOdds([
+    onLegOddsChange([
       roundOdds(Math.min(oddsA, oddsB)),
       roundOdds(Math.max(oddsA, oddsB)),
     ]);
@@ -64,14 +70,14 @@ const FiltersCard = memo(function FiltersCard({
       Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
     const legsB =
       Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
-    setLegs([Math.min(legsA, legsB), Math.max(legsA, legsB)]);
+    onLegsChange([Math.min(legsA, legsB), Math.max(legsA, legsB)]);
 
     const modes: ModeId[] = ["all", "hot", "fav"];
     onModeChange(modes[Math.floor(Math.random() * modes.length)]);
 
     const times: TimeId[] = ["any", "today", "3h", "48h", "72h"];
     onTimeChange(times[Math.floor(Math.random() * times.length)]);
-  }, [onModeChange, onTimeChange]);
+  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange]);
 
   const dirty =
     legOdds[0] !== DEFAULT_LEG_ODDS[0] ||
@@ -149,7 +155,7 @@ const FiltersCard = memo(function FiltersCard({
             step={0.01}
             value={legOdds}
             defaultValue={DEFAULT_LEG_ODDS}
-            onChange={setLegOdds}
+            onChange={onLegOddsChange}
             info={{
               title: "Leg Odds",
               sections: [
@@ -176,7 +182,7 @@ const FiltersCard = memo(function FiltersCard({
             step={1}
             value={legs}
             defaultValue={DEFAULT_LEGS}
-            onChange={setLegs}
+            onChange={onLegsChange}
             info={{
               title: "Legs",
               sections: [

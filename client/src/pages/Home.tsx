@@ -3,6 +3,7 @@ import { Button } from "@aliengain/components";
 import BetslipTypeCard, { type BetslipType } from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
 import FiltersCard, {
+  DEFAULT_LEG_ODDS,
   type ModeId,
   type TimeId,
 } from "@/components/FiltersCard";
@@ -56,6 +57,8 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   });
   const [mode, setMode] = useState<ModeId>("all");
   const [time, setTime] = useState<TimeId>("any");
+  const [legs, setLegs] = useState<[number, number]>([1, 60]);
+  const [legOdds, setLegOdds] = useState<[number, number]>(DEFAULT_LEG_ODDS);
   const [betslipType, setBetslipType] = useState<BetslipType>("target");
   const [savedToast, setSavedToast] = useState<string | null>(null);
 
@@ -88,6 +91,12 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
 
     try {
       const result = await generateBetslip(countryCode, targetOdds, {
+        timeRange: time === "any" ? "whenever" : time,
+        selectionMode: mode,
+        minSelections: legs[0],
+        maxSelections: legs[1],
+        minLegOdds: legOdds[0],
+        maxLegOdds: legOdds[1],
         excludedLeagues: excluded.leagues,
         excludedMarkets: excluded.markets,
       });
@@ -104,7 +113,17 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
       setError(true);
       console.error("Error generating betslip:", error);
     }
-  }, [invalidBrand, targetOdds, countryCode, excluded.leagues, excluded.markets]);
+  }, [
+    invalidBrand,
+    targetOdds,
+    countryCode,
+    time,
+    mode,
+    legs,
+    legOdds,
+    excluded.leagues,
+    excluded.markets,
+  ]);
 
   const handleRetry = useCallback(
     () => handleGenerateBetslip(),
@@ -154,6 +173,10 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           onModeChange={setMode}
           time={time}
           onTimeChange={setTime}
+          legs={legs}
+          onLegsChange={setLegs}
+          legOdds={legOdds}
+          onLegOddsChange={setLegOdds}
         />
 
         <ExcludeLeaguesPanel
@@ -201,10 +224,13 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
             result={betslipResult}
             targetOdds={targetOdds}
             onRegenerate={handleGenerateBetslip}
+            onResultChange={setBetslipResult}
             onClose={() => setBetslipResult(null)}
             brandIdentifier={brandIdentifier}
             mode={mode}
             time={time}
+            excluded={excluded}
+            legOdds={legOdds}
             onSaved={(code) => setSavedToast(code)}
           />
         )}
