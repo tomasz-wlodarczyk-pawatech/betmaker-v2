@@ -184,4 +184,11 @@ button {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Keep it scrollable but hide the scrollbar chrome. */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / old Edge */
+}
+
+.bottom-sheet__body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, WebKit */
 }
