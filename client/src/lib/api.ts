@@ -52,6 +52,14 @@ export async function generateBetslip(
 
     return await response.json();
   } catch (error) {
+    // The backend returns 404 "No suitable betslip found for the target odds"
+    // when the algorithm can't hit the target. That's a valid "no match"
+    // outcome, not a failure — return null so the caller shows the no-match
+    // state (with "try other odds") instead of a generic error.
+    // (apiRequest formats errors as `${status}: ${text}`, see queryClient.ts.)
+    if (error instanceof Error && error.message.startsWith("404")) {
+      return null;
+    }
     console.error("Error generating betslip:", error);
     throw error;
   }

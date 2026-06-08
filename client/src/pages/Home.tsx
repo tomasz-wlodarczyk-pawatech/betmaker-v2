@@ -9,7 +9,6 @@ import FiltersCard, {
   type ModeId,
   type TimeId,
 } from "@/components/FiltersCard";
-import { MIN_ODDS, MAX_ODDS } from "@/lib/odds";
 import ExcludeLeaguesPanel, {
   type ExcludeSelection,
 } from "@/components/ExcludeLeaguesPanel";
@@ -154,18 +153,6 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     [handleGenerateBetslip],
   );
 
-  const handleSuggestedOdds = useCallback(
-    (suggestedOdds: number) => {
-      const clamped = Math.min(
-        MAX_ODDS,
-        Math.max(MIN_ODDS, Math.round(suggestedOdds)),
-      );
-      setTargetOdds(clamped);
-      setTimeout(() => handleGenerateBetslip(), 100);
-    },
-    [handleGenerateBetslip],
-  );
-
   if (invalidBrand) {
     return (
       <ErrorState
@@ -240,13 +227,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           />
         )}
 
-        {noMatchFound && (
-          <NoMatchState
-            targetOdds={targetOdds}
-            onTryLower={() => handleSuggestedOdds(targetOdds * 0.7)}
-            onTryHigher={() => handleSuggestedOdds(targetOdds * 1.5)}
-          />
-        )}
+        {noMatchFound && <NoMatchState />}
 
         {betslipResult && (
           <BetslipResults
