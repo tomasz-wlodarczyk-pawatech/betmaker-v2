@@ -284,6 +284,7 @@ const BetslipResults = memo(function BetslipResults({
         >
           <div
             style={{
+              flexShrink: 0,
               background: "var(--colors-background-secondary, #ffffff)",
               border: "1px solid var(--colors-border-default, #e4e6e7)",
               borderRadius: "var(--radius-lg, 0.75rem)",
@@ -311,53 +312,56 @@ const BetslipResults = memo(function BetslipResults({
               onClose={() => setError(null)}
             />
           )}
+        </div>
 
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--spacing-xs, 0.5rem)",
+            padding: "var(--spacing-sm, 0.75rem)",
+            paddingTop: 0,
+          }}
+        >
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
               gap: "var(--spacing-xs, 0.5rem)",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--spacing-xs, 0.5rem)",
-              }}
-            >
-              <Button
-                title={isSaving ? "SAVING…" : "SAVE FOR LATER"}
-                variant="tonal"
-                size="lg"
-                buttonStyle="square"
-                fullWidth
-                leftIcon={<IconBookmark size="sm" />}
-                onClick={handleSaveForLater}
-                isLoading={isSaving}
-                disabled={isSaving}
-                style={{ flex: "1 1 0" }}
-              />
-              <Button
-                title="GENERATE NEW"
-                variant="tonal"
-                size="lg"
-                buttonStyle="square"
-                fullWidth
-                leftIcon={<IconRotateCw size="sm" />}
-                onClick={onRegenerate}
-                style={{ flex: "1 1 0" }}
-              />
-            </div>
             <Button
-              title={isLoading ? "LOADING…" : "ADD TO BETSLIP"}
-              variant="primary"
+              title={isSaving ? "SAVING…" : "SAVE FOR LATER"}
+              variant="tonal"
               size="lg"
               buttonStyle="square"
               fullWidth
-              isLoading={isLoading}
-              onClick={handleAddToBetslip}
+              leftIcon={<IconBookmark size="sm" />}
+              onClick={handleSaveForLater}
+              isLoading={isSaving}
+              disabled={isSaving}
+              style={{ flex: "1 1 0" }}
+            />
+            <Button
+              title="GENERATE NEW"
+              variant="tonal"
+              size="lg"
+              buttonStyle="square"
+              fullWidth
+              leftIcon={<IconRotateCw size="sm" />}
+              onClick={onRegenerate}
+              style={{ flex: "1 1 0" }}
             />
           </div>
+          <Button
+            title={isLoading ? "LOADING…" : "ADD TO BETSLIP"}
+            variant="primary"
+            size="lg"
+            buttonStyle="square"
+            fullWidth
+            isLoading={isLoading}
+            onClick={handleAddToBetslip}
+          />
         </div>
       </div>
     </>,

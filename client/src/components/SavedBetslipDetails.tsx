@@ -61,6 +61,7 @@ const SavedBetslipDetails = memo(function SavedBetslipDetails({
         >
           <div
             style={{
+              flexShrink: 0,
               background: "var(--colors-background-secondary, #ffffff)",
               border: "1px solid var(--colors-border-default, #e4e6e7)",
               borderRadius: "var(--radius-lg, 0.75rem)",
@@ -77,31 +78,34 @@ const SavedBetslipDetails = memo(function SavedBetslipDetails({
               />
             ))}
           </div>
+        </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--spacing-xs, 0.5rem)",
-            }}
-          >
-            <Button
-              title="USE BETSLIP"
-              variant="primary"
-              size="lg"
-              buttonStyle="square"
-              fullWidth
-              onClick={handleUse}
-            />
-            <Button
-              title="DELETE"
-              variant="tonal"
-              size="lg"
-              buttonStyle="square"
-              fullWidth
-              onClick={handleDelete}
-            />
-          </div>
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--spacing-xs, 0.5rem)",
+            padding: "var(--spacing-sm, 0.75rem)",
+            paddingTop: 0,
+          }}
+        >
+          <Button
+            title="USE BETSLIP"
+            variant="primary"
+            size="lg"
+            buttonStyle="square"
+            fullWidth
+            onClick={handleUse}
+          />
+          <Button
+            title="DELETE"
+            variant="tonal"
+            size="lg"
+            buttonStyle="square"
+            fullWidth
+            onClick={handleDelete}
+          />
         </div>
       </div>
     </>,

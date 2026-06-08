@@ -4,9 +4,12 @@ import BetslipTypeCard, { type BetslipType } from "@/components/BetslipTypeCard"
 import OddsInput from "@/components/OddsInput";
 import FiltersCard, {
   DEFAULT_LEG_ODDS,
+  LEG_ODDS_MIN,
+  LEG_ODDS_MAX,
   type ModeId,
   type TimeId,
 } from "@/components/FiltersCard";
+import { MIN_ODDS, MAX_ODDS } from "@/lib/odds";
 import ExcludeLeaguesPanel, {
   type ExcludeSelection,
 } from "@/components/ExcludeLeaguesPanel";
@@ -68,6 +71,27 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     );
     setInvalidBrand(!isValid);
   }, [brandIdentifier, supportedBrandIdentifiers]);
+
+  // A single leg can never exceed the slip's total odds (total = product of all
+  // legs), so the leg-odds range is capped at the Target Total Odds itself:
+  // leg odds above the target are impossible and make no sense to offer.
+  const legOddsCap = useMemo(
+    () => Math.min(LEG_ODDS_MAX, targetOdds),
+    [targetOdds],
+  );
+
+  // Keep leg odds in sync with the target: pull the range down whenever it
+  // would exceed the cap. If the whole range sits above the cap, fall back to
+  // the full allowed span so the generator still has picks to work with.
+  useEffect(() => {
+    setLegOdds((current) => {
+      const [lo, hi] = current;
+      if (lo <= legOddsCap && hi <= legOddsCap) return current;
+      const nextLo = lo > legOddsCap ? LEG_ODDS_MIN : lo;
+      const nextHi = Math.min(hi, legOddsCap);
+      return [nextLo, nextHi];
+    });
+  }, [legOddsCap]);
 
   const handleGenerateBetslip = useCallback(async () => {
     if (invalidBrand) return;
@@ -132,7 +156,11 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
 
   const handleSuggestedOdds = useCallback(
     (suggestedOdds: number) => {
-      setTargetOdds(Math.round(suggestedOdds));
+      const clamped = Math.min(
+        MAX_ODDS,
+        Math.max(MIN_ODDS, Math.round(suggestedOdds)),
+      );
+      setTargetOdds(clamped);
       setTimeout(() => handleGenerateBetslip(), 100);
     },
     [handleGenerateBetslip],
@@ -177,6 +205,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           onLegsChange={setLegs}
           legOdds={legOdds}
           onLegOddsChange={setLegOdds}
+          legOddsMax={legOddsCap}
         />
 
         <ExcludeLeaguesPanel

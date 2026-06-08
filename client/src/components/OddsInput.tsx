@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, memo } from "react";
 import { IconButton, Input, Tabs } from "@aliengain/components";
 import { IconChevronLeft, IconChevronRight } from "@aliengain/icons";
 import { DualSliderTrack } from "./DualSliderTrack";
+import { MIN_ODDS, MAX_ODDS, formatOdds, computeRange } from "@/lib/odds";
 
 interface OddsInputProps {
   targetOdds: number;
@@ -10,27 +11,7 @@ interface OddsInputProps {
   disabled?: boolean;
 }
 
-const MIN_ODDS = 1.01;
-const MAX_ODDS = 1000;
-const TOLERANCE = 0.15;
-
 type Mode = "exact" | "range";
-
-const formatOdds = (n: number): string => {
-  const rounded = Math.round(n);
-  return Math.abs(n - rounded) < 0.005 ? String(rounded) : n.toFixed(2);
-};
-
-const computeRange = (odds: number): [number, number] => {
-  const tol = odds * TOLERANCE;
-  const round =
-    odds < 5
-      ? (n: number) => Math.round(n * 100) / 100
-      : (n: number) => Math.round(n);
-  const minR = Math.max(MIN_ODDS, round(odds - tol));
-  const maxR = Math.max(minR, Math.min(MAX_ODDS, round(odds + tol)));
-  return [minR, maxR];
-};
 
 const OddsInput = memo(function OddsInput({
   targetOdds,

@@ -16,8 +16,8 @@ import InfoTooltipButton from "./InfoTooltipButton";
 import type { InfoSection } from "./InfoModal";
 import { DualSliderTrack } from "./DualSliderTrack";
 
-const LEG_ODDS_MIN = 1.01;
-const LEG_ODDS_MAX = 100;
+export const LEG_ODDS_MIN = 1.01;
+export const LEG_ODDS_MAX = 100;
 const LEGS_MIN = 1;
 const LEGS_MAX = 60;
 
@@ -36,6 +36,9 @@ interface FiltersCardProps {
   onLegsChange: (next: [number, number]) => void;
   legOdds: [number, number];
   onLegOddsChange: (next: [number, number]) => void;
+  // Upper bound for leg odds, capped to the Target Total Odds: a single leg can
+  // never exceed the slip total, so leg odds above the target are impossible.
+  legOddsMax: number;
 }
 
 const FiltersCard = memo(function FiltersCard({
@@ -47,19 +50,22 @@ const FiltersCard = memo(function FiltersCard({
   onLegsChange,
   legOdds,
   onLegOddsChange,
+  legOddsMax,
 }: FiltersCardProps) {
   const [open, setOpen] = useState(true);
 
+  const legOddsDefault: [number, number] = [LEG_ODDS_MIN, legOddsMax];
+
   const handleReset = useCallback(() => {
-    onLegOddsChange(DEFAULT_LEG_ODDS);
+    onLegOddsChange([LEG_ODDS_MIN, legOddsMax]);
     onLegsChange(DEFAULT_LEGS);
     onModeChange("all");
     onTimeChange("any");
-  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange]);
+  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange, legOddsMax]);
 
   const handleRandomise = useCallback(() => {
-    const oddsA = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
-    const oddsB = LEG_ODDS_MIN + Math.random() * (LEG_ODDS_MAX - LEG_ODDS_MIN);
+    const oddsA = LEG_ODDS_MIN + Math.random() * (legOddsMax - LEG_ODDS_MIN);
+    const oddsB = LEG_ODDS_MIN + Math.random() * (legOddsMax - LEG_ODDS_MIN);
     const roundOdds = (n: number) => Math.round(n * 100) / 100;
     onLegOddsChange([
       roundOdds(Math.min(oddsA, oddsB)),
@@ -77,11 +83,11 @@ const FiltersCard = memo(function FiltersCard({
 
     const times: TimeId[] = ["any", "today", "3h", "48h", "72h"];
     onTimeChange(times[Math.floor(Math.random() * times.length)]);
-  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange]);
+  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange, legOddsMax]);
 
   const dirty =
-    legOdds[0] !== DEFAULT_LEG_ODDS[0] ||
-    legOdds[1] !== DEFAULT_LEG_ODDS[1] ||
+    legOdds[0] !== legOddsDefault[0] ||
+    legOdds[1] !== legOddsDefault[1] ||
     legs[0] !== DEFAULT_LEGS[0] ||
     legs[1] !== DEFAULT_LEGS[1] ||
     mode !== "all" ||
@@ -151,10 +157,10 @@ const FiltersCard = memo(function FiltersCard({
             icon={<IconTrendingUp size="sm" />}
             label="Leg Odds"
             min={LEG_ODDS_MIN}
-            max={LEG_ODDS_MAX}
+            max={legOddsMax}
             step={0.01}
             value={legOdds}
-            defaultValue={DEFAULT_LEG_ODDS}
+            defaultValue={legOddsDefault}
             onChange={onLegOddsChange}
             info={{
               title: "Leg Odds",

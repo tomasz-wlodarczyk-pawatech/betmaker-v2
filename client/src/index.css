@@ -176,6 +176,12 @@ button {
 }
 
 .bottom-sheet__body {
+  /* Fill the space between the fixed header and footer and scroll its own
+     overflow. min-height:0 lets this flex item shrink below its content height
+     (otherwise the default min-height:auto would push the content out instead
+     of scrolling). */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }

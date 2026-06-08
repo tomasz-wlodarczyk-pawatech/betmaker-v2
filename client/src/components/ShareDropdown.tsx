@@ -1,31 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Dropdown, IconButton, Toast } from "@aliengain/components";
-import { IconCopy, IconShare, IconWhatsapp, IconX } from "@aliengain/icons";
+import { IconCopy, IconShare, IconTelegram, IconWhatsapp, IconX } from "@aliengain/icons";
 
 interface ShareDropdownProps {
   shareText: string;
   shareUrl?: string;
   ariaLabel?: string;
-}
-
-function IconTelegram({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="12" fill="#229ED9" />
-      <path
-        d="M5.5 11.7l11.3-4.4c.5-.2 1 .1.8.7l-1.9 9c-.1.5-.5.6-.9.4l-2.8-2-1.3 1.3c-.2.2-.3.3-.6.3l.2-3 5.5-5c.2-.2 0-.3-.3-.1l-6.8 4.3-2.9-.9c-.6-.2-.7-.6 0-.9z"
-        fill="#fff"
-      />
-    </svg>
-  );
 }
 
 function IconXLogo({ size = 16 }: { size?: number }) {
@@ -118,16 +99,21 @@ const ShareDropdown = memo(function ShareDropdown({
   return (
     <>
       <Dropdown open={open} onOpenChange={setOpen}>
-        <Dropdown.Trigger>
-          <IconButton
-            aria-label={ariaLabel}
-            icon={<IconShare size="sm" />}
-            variant="tertiary"
-            size="sm"
-            buttonStyle="square"
-          />
-        </Dropdown.Trigger>
-        <Dropdown.Content minWidth={220} style={{ padding: "var(--spacing-xxs, 0.25rem)" }}>
+        <Dropdown.Anchor>
+          <Dropdown.Trigger>
+            <IconButton
+              aria-label={ariaLabel}
+              icon={<IconShare size="sm" />}
+              variant="tertiary"
+              size="sm"
+              buttonStyle="square"
+            />
+          </Dropdown.Trigger>
+          <Dropdown.Content
+            align="end"
+            minWidth={220}
+            style={{ padding: "var(--spacing-xxs, 0.25rem)" }}
+          >
           <Dropdown.Item
             leftIcon={<IconCopy size="sm" color="var(--colors-icon-primary)" />}
             onClick={handleCopyLink}
@@ -141,19 +127,7 @@ const ShareDropdown = memo(function ShareDropdown({
             WhatsApp
           </Dropdown.Item>
           <Dropdown.Item
-            leftIcon={
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 20,
-                  height: 20,
-                }}
-              >
-                <IconTelegram size={20} />
-              </span>
-            }
+            leftIcon={<IconTelegram size="sm" color="var(--colors-icon-primary)" />}
             onClick={() => handleOpenSocial(telegramHref)}
           >
             Telegram
@@ -177,7 +151,8 @@ const ShareDropdown = memo(function ShareDropdown({
           >
             Twitter / X
           </Dropdown.Item>
-        </Dropdown.Content>
+          </Dropdown.Content>
+        </Dropdown.Anchor>
       </Dropdown>
 
       {toastVisible &&
