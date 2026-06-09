@@ -58,7 +58,9 @@ function getPreferenceContext(): {
     return { token: null, brand: null, country: "gh" };
   }
   const params = new URLSearchParams(window.location.search);
-  const token = params.get("sid");
+  // The betPawa host embeds this miniapp with `?sess=` (mode=embedded); the
+  // standalone lobby uses `?sid=`. Accept either.
+  const token = params.get("sess") || params.get("sid");
   const brand = params.get("brand");
   const country = (
     COUNTRIES.find((c) => c.brandIdentifier === brand)?.countryIso2Code || "gh"
@@ -77,7 +79,31 @@ function ensurePrefsLoaded() {
   if (prefsLoadStarted) return;
   prefsLoadStarted = true;
   const { token, brand, country } = getPreferenceContext();
-  if (!token || !brand) return;
+
+  // DEBUG: tymczasowy log do diagnozy sesji — pokazuje, co host realnie podaje
+  // do iframe'a (param sess/sid, token i jego prefix show_ vs sess_).
+  // Usuń po rozwiązaniu sprawy tokenu.
+  if (typeof window !== "undefined") {
+    console.log("[SavedBetslips] diag sesji:", {
+      search: window.location.search,
+      allParams: Object.fromEntries(
+        new URLSearchParams(window.location.search),
+      ),
+      token,
+      tokenPrefix: token ? `${token.split("_")[0]}_` : null,
+      brand,
+      country,
+      isIframe: window.self !== window.top,
+    });
+  }
+
+  if (!token || !brand) {
+    console.warn(
+      "[SavedBetslips] brak token/brand → preferencje pominięte, działa localStorage",
+      { hasToken: !!token, hasBrand: !!brand },
+    );
+    return;
+  }
   void (async () => {
     try {
       const remote = await fetchSavedBetslipsFromPreferences(
@@ -85,11 +111,14 @@ function ensurePrefsLoaded() {
         brand,
         token,
       );
+      console.log(
+        `[SavedBetslips] preferencje wczytane z gatewaya: ${remote.length} slip(ów)`,
+      );
       if (remote.length > 0) {
         setSlips(remote);
       }
     } catch (err) {
-      console.error("Failed to load saved betslips from preferences:", err);
+      console.error("[SavedBetslips] błąd wczytywania preferencji:", err);
     }
   })();
 }
@@ -103,8 +132,12 @@ function persistToPreferences(next: SavedBetslip[]) {
   void (async () => {
     try {
       await saveBetslipsToPreferences(country, brand, token, next);
+      console.log(
+        `[SavedBetslips] zsynchronizowano do preferencji: ${next.length} slip(ów)`,
+      );
     } catch (err) {
-      console.error("Failed to sync saved betslips to preferences:", err);
+      // err.message zawiera status + body z proxy (w tym upstreamStatus/upstreamBody)
+      console.error("[SavedBetslips] błąd zapisu do preferencji:", err);
     }
   })();
 }

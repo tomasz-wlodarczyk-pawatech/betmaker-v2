@@ -377,8 +377,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return res.json({ savedBetslips });
     } catch (error) {
-      console.error("Error fetching saved betslips from preferences:", error);
-      return res.status(502).json({ message: "Failed to load saved betslips" });
+      const upstream = error as { status?: number; body?: string };
+      console.error(
+        "Error fetching saved betslips from preferences:",
+        upstream?.status,
+        upstream?.body,
+        error,
+      );
+      return res.status(502).json({
+        message: "Failed to load saved betslips",
+        upstreamStatus: upstream?.status ?? null,
+        upstreamBody:
+          typeof upstream?.body === "string"
+            ? upstream.body.slice(0, 500)
+            : undefined,
+      });
     }
   });
 
@@ -419,8 +432,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(400)
           .json({ message: "Invalid input", errors: error.errors });
       }
-      console.error("Error saving betslips to preferences:", error);
-      return res.status(502).json({ message: "Failed to save betslips" });
+      const upstream = error as { status?: number; body?: string };
+      console.error(
+        "Error saving betslips to preferences:",
+        upstream?.status,
+        upstream?.body,
+        error,
+      );
+      return res.status(502).json({
+        message: "Failed to save betslips",
+        upstreamStatus: upstream?.status ?? null,
+        upstreamBody:
+          typeof upstream?.body === "string"
+            ? upstream.body.slice(0, 500)
+            : undefined,
+      });
     }
   });
 

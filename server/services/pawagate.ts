@@ -77,7 +77,13 @@ export async function getPreferences(
 
   if (response.status === 404) return {};
   if (!response.ok) {
-    throw new Error(`Failed to load preferences: ${response.status}`);
+    const body = await response.text().catch(() => "");
+    const err = new Error(
+      `Failed to load preferences: ${response.status}`,
+    ) as Error & { status: number; body: string };
+    err.status = response.status;
+    err.body = body;
+    throw err;
   }
 
   const data = await response.json().catch(() => null);
@@ -103,7 +109,12 @@ export async function setPreferences(
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`Failed to save preferences: ${response.status} ${body}`);
+    const err = new Error(
+      `Failed to save preferences: ${response.status}`,
+    ) as Error & { status: number; body: string };
+    err.status = response.status;
+    err.body = body;
+    throw err;
   }
 }
 
