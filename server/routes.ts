@@ -8,13 +8,18 @@ import {
   generateBookingCodeSchema,
   availableFiltersSchema,
   switchSelectionSchema,
+  savedBetslipsPreferenceSchema,
 } from "@shared/schema";
 import {
   generateBetslip,
   findReplacementSelection,
   filterEvents,
 } from "./services/betslipService";
-import { getPopularEvents } from "./services/pawagate";
+import {
+  getPopularEvents,
+  getPreferences,
+  setPreferences,
+} from "./services/pawagate";
 
 // List of supported country codes
 const SUPPORTED_COUNTRIES = [
@@ -42,6 +47,17 @@ const SUPPORTED_COUNTRIES = [
   "zm",
   "zw",
 ];
+
+// Pull the lobby session token out of the Authorization header. The token
+// (`sid`) is passed to the miniapp by the App Lobby only when the user is
+// logged in; the client forwards it here so this proxy can authenticate the
+// preference calls upstream.
+function getBearerToken(req: Request): string | null {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Bearer ")) return null;
+  const token = auth.slice("Bearer ".length).trim();
+  return token || null;
+}
 
 // Get country code from request or default to 'gh'
 function getCountryCode(req: Request): string | null {
@@ -329,6 +345,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.error("Error fetching filters:", error);
       res.status(500).json({ message: "Failed to fetch filters" });
+    }
+  });
+
+  // Read the user's saved betslips from their miniapp preferences. Requires a
+  // logged-in session token (forwarded as a Bearer header by the client).
+  app.get("/api/:country/preferences/betslips", async (req, res) => {
+    try {
+      const countryCode = getCountryCode(req);
+
+      if (!countryCode) {
+        return res.status(400).json({
+          message:
+            "Invalid country code. Supported countries: " +
+            SUPPORTED_COUNTRIES.join(", "),
+        });
+      }
+
+      const token = getBearerToken(req);
+      if (!token) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const brand =
+        typeof req.query.brand === "string" ? req.query.brand : undefined;
+
+      const prefs = await getPreferences(token, brand);
+      const savedBetslips = Array.isArray(prefs.savedBetslips)
+        ? prefs.savedBetslips
+        : [];
+
+      return res.json({ savedBetslips });
+    } catch (error) {
+      console.error("Error fetching saved betslips from preferences:", error);
+      return res.status(502).json({ message: "Failed to load saved betslips" });
+    }
+  });
+
+  // Persist the user's saved betslips to their miniapp preferences. POST on the
+  // gateway overwrites the whole preference document, so we read it first and
+  // merge the new `savedBetslips` array in, preserving any other keys.
+  app.put("/api/:country/preferences/betslips", async (req, res) => {
+    try {
+      const countryCode = getCountryCode(req);
+
+      if (!countryCode) {
+        return res.status(400).json({
+          message:
+            "Invalid country code. Supported countries: " +
+            SUPPORTED_COUNTRIES.join(", "),
+        });
+      }
+
+      const token = getBearerToken(req);
+      if (!token) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { savedBetslips, brandIdentifier } =
+        savedBetslipsPreferenceSchema.parse(req.body);
+
+      const prefs = await getPreferences(token, brandIdentifier);
+      await setPreferences(
+        token,
+        { ...prefs, savedBetslips },
+        brandIdentifier,
+      );
+
+      return res.json({ savedBetslips });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error saving betslips to preferences:", error);
+      return res.status(502).json({ message: "Failed to save betslips" });
     }
   });
 

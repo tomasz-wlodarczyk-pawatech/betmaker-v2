@@ -94,6 +94,15 @@ export const availableFiltersSchema = z.object({
   timeRange: timeRangeSchema.default("whenever"),
 });
 
+// Saved betslips persisted to the user's miniapp preferences. The slips are
+// stored opaquely (the gateway keeps the whole preference document as JSON), so
+// they're validated loosely here — the client `SavedBetslip` shape is the real
+// source of truth and the server only forwards the array.
+export const savedBetslipsPreferenceSchema = z.object({
+  brandIdentifier: z.string(),
+  savedBetslips: z.array(z.unknown()),
+});
+
 // Swap a single leg of an already-generated betslip. `selectionMode` is kept as
 // a loose string (the embedder may send values like "popular") and normalised
 // server-side to hot-vs-all. `excludeEventIds` are the events already in the
@@ -118,5 +127,8 @@ export type GenerateBookingCodeRequest = z.infer<
   typeof generateBookingCodeSchema
 >;
 export type AvailableFiltersRequest = z.infer<typeof availableFiltersSchema>;
+export type SavedBetslipsPreferenceRequest = z.infer<
+  typeof savedBetslipsPreferenceSchema
+>;
 export type SwitchSelectionRequest = z.infer<typeof switchSelectionSchema>;
 export type TimeRange = z.infer<typeof timeRangeSchema>;

@@ -39,6 +39,74 @@ export async function validateSession(token: string): Promise<UserContext> {
   return data.user;
 }
 
+// The gateway stores a single preference document per (user, miniapp) and
+// returns it in a shape we can't fully confirm from the public docs (it may be
+// bare, or wrapped as `{ preferences }` / `{ data: { preferences } }`, mirroring
+// how `session/validate` wraps `{ success, user }`). Normalise all of those to
+// the plain preferences object, and drop known wrapper keys when the body looks
+// bare.
+function extractPreferences(data: unknown): Record<string, unknown> {
+  if (!data || typeof data !== "object") return {};
+  const obj = data as Record<string, unknown>;
+  if (obj.preferences && typeof obj.preferences === "object") {
+    return obj.preferences as Record<string, unknown>;
+  }
+  const nested = obj.data as Record<string, unknown> | undefined;
+  if (nested && typeof nested === "object") {
+    if (nested.preferences && typeof nested.preferences === "object") {
+      return nested.preferences as Record<string, unknown>;
+    }
+    return nested;
+  }
+  const { success: _success, message: _message, ...rest } = obj;
+  return rest;
+}
+
+// Read the user's miniapp preference document. A missing document (first-ever
+// save) is a normal 404/empty → return `{}` so callers can merge into it. Auth
+// or upstream failures throw, so the caller never mistakes "token expired" for
+// "no saved data" and clobbers the client's local copy.
+export async function getPreferences(
+  token: string,
+  brand?: string,
+): Promise<Record<string, unknown>> {
+  const response = await fetch(
+    `${PAWAGATE_BASE_URL}/api/miniapp/v1/preference`,
+    { headers: buildHeaders(brand, token) },
+  );
+
+  if (response.status === 404) return {};
+  if (!response.ok) {
+    throw new Error(`Failed to load preferences: ${response.status}`);
+  }
+
+  const data = await response.json().catch(() => null);
+  if (data == null) return {};
+  return extractPreferences(data);
+}
+
+// Replace the user's miniapp preference document. POST overwrites the whole
+// `preferences` object, so callers must pass the full merged document.
+export async function setPreferences(
+  token: string,
+  preferences: Record<string, unknown>,
+  brand?: string,
+): Promise<void> {
+  const response = await fetch(
+    `${PAWAGATE_BASE_URL}/api/miniapp/v1/preference`,
+    {
+      method: "POST",
+      headers: buildHeaders(brand, token),
+      body: JSON.stringify({ preferences }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Failed to save preferences: ${response.status} ${body}`);
+  }
+}
+
 export async function getPopularEvents(brand: string): Promise<unknown> {
   const response = await fetch(
     `${PAWAGATE_BASE_URL}/api/sportsbook-plus/v1/events/popular`,

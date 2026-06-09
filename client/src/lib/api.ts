@@ -1,6 +1,7 @@
 import { COUNTRIES } from "./countries";
 import { apiRequest, queryClient } from "./queryClient";
 import { BetSlipResult, BetSlipSelection, Country } from "@/types";
+import type { SavedBetslip } from "@/hooks/use-saved-betslips";
 
 const API_BASE = "/api";
 
@@ -109,6 +110,45 @@ export async function switchSelection(
   );
   const data = await response.json();
   return data?.selection ?? null;
+}
+
+// Saved betslips synced to the logged-in user's miniapp preferences. The
+// session token comes from the lobby (`?sid=`) and is forwarded as a Bearer
+// header; the country segment is validated server-side but the upstream is
+// selected by brand, so any supported country works here.
+export async function fetchSavedBetslipsFromPreferences(
+  country: string,
+  brandIdentifier: string,
+  sessionToken: string,
+): Promise<SavedBetslip[]> {
+  const response = await apiRequest(
+    "GET",
+    `${API_BASE}/${country}/preferences/betslips?brand=${encodeURIComponent(brandIdentifier)}`,
+    undefined,
+    { Authorization: `Bearer ${sessionToken}` },
+  );
+  const data = await response.json();
+  return Array.isArray(data?.savedBetslips)
+    ? (data.savedBetslips as SavedBetslip[])
+    : [];
+}
+
+export async function saveBetslipsToPreferences(
+  country: string,
+  brandIdentifier: string,
+  sessionToken: string,
+  savedBetslips: SavedBetslip[],
+): Promise<SavedBetslip[]> {
+  const response = await apiRequest(
+    "PUT",
+    `${API_BASE}/${country}/preferences/betslips`,
+    { savedBetslips, brandIdentifier },
+    { Authorization: `Bearer ${sessionToken}` },
+  );
+  const data = await response.json();
+  return Array.isArray(data?.savedBetslips)
+    ? (data.savedBetslips as SavedBetslip[])
+    : savedBetslips;
 }
 
 export async function generateBookingCode(
