@@ -9,6 +9,33 @@ interface ShareDropdownProps {
   ariaLabel?: string;
 }
 
+// Legacy synchronous clipboard write. Used as a fallback when the async
+// Clipboard API is unavailable or blocked (e.g. Chrome enforces the
+// `clipboard-write` Permissions Policy inside cross-origin iframes, where this
+// app is embedded). Must be called within a user gesture. Returns whether the
+// copy succeeded.
+function copyViaExecCommand(text: string): boolean {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "0";
+    ta.style.opacity = "0";
+    ta.style.pointerEvents = "none";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function IconXLogo({ size = 16 }: { size?: number }) {
   return (
     <svg
@@ -60,22 +87,25 @@ const ShareDropdown = memo(function ShareDropdown({
 
   const handleCopyLink = useCallback(async () => {
     const payload = shareUrl ?? shareText;
-    try {
-      if (navigator?.clipboard?.writeText) {
+
+    // Try the async Clipboard API first (works in Safari and outside iframes).
+    // In a cross-origin iframe without `allow="clipboard-write"` (our case when
+    // embedded by the host), Chrome blocks it via the clipboard-write Permissions
+    // Policy and the promise rejects — so we must fall back to execCommand, which
+    // is not gated by that policy. The legacy path runs in the same task as the
+    // click, so the user gesture is still active.
+    if (navigator?.clipboard?.writeText) {
+      try {
         await navigator.clipboard.writeText(payload);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = payload;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
+        showCopiedToast();
+        return;
+      } catch {
+        // fall through to the execCommand fallback below
       }
+    }
+
+    if (copyViaExecCommand(payload)) {
       showCopiedToast();
-    } catch {
-      // swallow
     }
   }, [shareUrl, shareText, showCopiedToast]);
 
