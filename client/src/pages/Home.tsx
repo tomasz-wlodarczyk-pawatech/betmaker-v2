@@ -15,6 +15,7 @@ import LeaguesMarketsPanel, {
 import SavedBetslipsCard from "@/components/SavedBetslipsCard";
 import SaveToast from "@/components/SaveToast";
 import { generateBetslip } from "@/lib/api";
+import { checkBetslipFeasibility } from "@/lib/feasibility";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
 import BetslipResults from "@/components/BetslipResults";
@@ -92,8 +93,28 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     });
   }, [legOddsCap]);
 
+  // Whether the current filter combination can arithmetically produce a betslip
+  // at all (total odds = product of legs). When it can't, we warn live and skip
+  // the pointless API call — the detector has no false positives, so a "false"
+  // here is a true dead end, not bad luck.
+  const feasibility = useMemo(
+    () =>
+      checkBetslipFeasibility({
+        targetOdds,
+        minLegOdds: legOdds[0],
+        maxLegOdds: legOdds[1],
+        minLegs: legs[0],
+        maxLegs: legs[1],
+      }),
+    [targetOdds, legOdds, legs],
+  );
+
   const handleGenerateBetslip = useCallback(async () => {
     if (invalidBrand) return;
+
+    // Mathematically impossible filters: the live warning is already on screen,
+    // so just bail — no spinner, no postMessage, no API call.
+    if (!feasibility.feasible) return;
 
     setNoMatchFound(false);
     setBetslipResult(null);
@@ -138,6 +159,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     }
   }, [
     invalidBrand,
+    feasibility.feasible,
     targetOdds,
     countryCode,
     time,
@@ -204,6 +226,13 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
 
         <SavedBetslipsCard />
 
+        {!feasibility.feasible && (
+          <NoMatchState
+            title="These filters can't make a betslip"
+            description={feasibility.reason}
+          />
+        )}
+
         <Button
           title="GENERATE SELECTIONS"
           variant="primary"
@@ -220,14 +249,14 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           />
         )}
 
-        {error && (
+        {error && feasibility.feasible && (
           <ErrorState
             message="Unable to generate betslip. Please try again later."
             onRetry={handleRetry}
           />
         )}
 
-        {noMatchFound && <NoMatchState />}
+        {noMatchFound && feasibility.feasible && <NoMatchState />}
 
         {betslipResult && (
           <BetslipResults
