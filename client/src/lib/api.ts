@@ -13,8 +13,8 @@ export interface GenerateBetslipOptions {
   minLegOdds?: number;
   maxLegOdds?: number;
   randomMode?: boolean;
-  excludedLeagues?: string[];
-  excludedMarkets?: string[];
+  selectedLeagues?: string[];
+  selectedMarkets?: string[];
 }
 
 export async function generateBetslip(
@@ -46,8 +46,8 @@ export async function generateBetslip(
         maxLegOdds: options?.maxLegOdds,
         selectionMode: options?.selectionMode ?? "all",
         randomMode: options?.randomMode ?? false,
-        excludedLeagues: options?.excludedLeagues ?? [],
-        excludedMarkets: options?.excludedMarkets ?? [],
+        selectedLeagues: options?.selectedLeagues ?? [],
+        selectedMarkets: options?.selectedMarkets ?? [],
       },
     );
 
@@ -93,8 +93,8 @@ export interface SwitchSelectionParams {
   targetOdds: number;
   currentTotalOdds: number;
   replacedSelectionOdds: number;
-  excludedLeagues?: string[];
-  excludedMarkets?: string[];
+  selectedLeagues?: string[];
+  selectedMarkets?: string[];
   minLegOdds?: number;
   maxLegOdds?: number;
 }

@@ -18,7 +18,7 @@ import { getCountryByBrand, useCountries } from "@/hooks/use-countries";
 import { useSavedBetslips } from "@/hooks/use-saved-betslips";
 import { BetSlipResult, BetSlipSelection } from "@/types";
 import { type ModeId, type TimeId } from "@/components/FiltersCard";
-import { type ExcludeSelection } from "@/components/ExcludeLeaguesPanel";
+import { type LeagueMarketSelection } from "@/components/LeaguesMarketsPanel";
 import ShareDropdown from "@/components/ShareDropdown";
 
 interface BetslipResultsProps {
@@ -30,7 +30,7 @@ interface BetslipResultsProps {
   brandIdentifier: string;
   mode: ModeId;
   time: TimeId;
-  excluded: ExcludeSelection;
+  selected: LeagueMarketSelection;
   legOdds: [number, number];
   onSaved: (bookingCode: string) => void;
 }
@@ -44,7 +44,7 @@ const BetslipResults = memo(function BetslipResults({
   brandIdentifier,
   mode,
   time,
-  excluded,
+  selected,
   legOdds,
   onSaved,
 }: BetslipResultsProps) {
@@ -211,8 +211,8 @@ const BetslipResults = memo(function BetslipResults({
             targetOdds,
             currentTotalOdds: result.totalOdds,
             replacedSelectionOdds: Number(selection.odds),
-            excludedLeagues: excluded.leagues,
-            excludedMarkets: excluded.markets,
+            selectedLeagues: selected.leagues,
+            selectedMarkets: selected.markets,
             minLegOdds: legOdds[0],
             maxLegOdds: legOdds[1],
           },
@@ -249,8 +249,8 @@ const BetslipResults = memo(function BetslipResults({
       time,
       mode,
       targetOdds,
-      excluded.leagues,
-      excluded.markets,
+      selected.leagues,
+      selected.markets,
       legOdds,
       onResultChange,
     ],

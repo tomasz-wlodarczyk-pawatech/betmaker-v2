@@ -9,9 +9,9 @@ import FiltersCard, {
   type ModeId,
   type TimeId,
 } from "@/components/FiltersCard";
-import ExcludeLeaguesPanel, {
-  type ExcludeSelection,
-} from "@/components/ExcludeLeaguesPanel";
+import LeaguesMarketsPanel, {
+  type LeagueMarketSelection,
+} from "@/components/LeaguesMarketsPanel";
 import SavedBetslipsCard from "@/components/SavedBetslipsCard";
 import SaveToast from "@/components/SaveToast";
 import { generateBetslip } from "@/lib/api";
@@ -53,7 +53,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [error, setError] = useState(false);
   const [invalidBrand, setInvalidBrand] = useState(false);
-  const [excluded, setExcluded] = useState<ExcludeSelection>({
+  const [selected, setSelected] = useState<LeagueMarketSelection>({
     leagues: [],
     markets: [],
   });
@@ -120,8 +120,8 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
         maxSelections: legs[1],
         minLegOdds: legOdds[0],
         maxLegOdds: legOdds[1],
-        excludedLeagues: excluded.leagues,
-        excludedMarkets: excluded.markets,
+        selectedLeagues: selected.leagues,
+        selectedMarkets: selected.markets,
       });
 
       clearInterval(progressInterval);
@@ -144,8 +144,8 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     mode,
     legs,
     legOdds,
-    excluded.leagues,
-    excluded.markets,
+    selected.leagues,
+    selected.markets,
   ]);
 
   const handleRetry = useCallback(
@@ -195,11 +195,11 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           legOddsMax={legOddsCap}
         />
 
-        <ExcludeLeaguesPanel
+        <LeaguesMarketsPanel
           countryCode={countryCode}
           brandIdentifier={brandIdentifier}
-          value={excluded}
-          onChange={setExcluded}
+          value={selected}
+          onChange={setSelected}
         />
 
         <SavedBetslipsCard />
@@ -239,7 +239,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
             brandIdentifier={brandIdentifier}
             mode={mode}
             time={time}
-            excluded={excluded}
+            selected={selected}
             legOdds={legOdds}
             onSaved={(code) => setSavedToast(code)}
           />

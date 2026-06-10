@@ -72,8 +72,9 @@ export const generateBetslipSchema = z.object({
   minLegOdds: z.number().positive().optional(),
   maxLegOdds: z.number().positive().optional(),
   randomMode: z.boolean().optional().default(false),
-  excludedLeagues: z.array(z.string()).optional().default([]),
-  excludedMarkets: z.array(z.string()).optional().default([]),
+  // Generate only from these leagues/markets; an empty array means no restriction.
+  selectedLeagues: z.array(z.string()).optional().default([]),
+  selectedMarkets: z.array(z.string()).optional().default([]),
 });
 
 export const generateBookingCodeSchema = z.object({
@@ -106,7 +107,8 @@ export const savedBetslipsPreferenceSchema = z.object({
 // Swap a single leg of an already-generated betslip. `selectionMode` is kept as
 // a loose string (the embedder may send values like "popular") and normalised
 // server-side to hot-vs-all. `excludeEventIds` are the events already in the
-// slip, so the replacement always comes from a fresh event.
+// slip, so the replacement always comes from a fresh event (unrelated to the
+// league/market selection below).
 export const switchSelectionSchema = z.object({
   brandIdentifier: z.string(),
   currentSelectionId: z.string(),
@@ -116,8 +118,9 @@ export const switchSelectionSchema = z.object({
   targetOdds: z.number(),
   currentTotalOdds: z.number(),
   replacedSelectionOdds: z.number(),
-  excludedLeagues: z.array(z.string()).optional().default([]),
-  excludedMarkets: z.array(z.string()).optional().default([]),
+  // Keep the replacement within the same selected leagues/markets as the slip.
+  selectedLeagues: z.array(z.string()).optional().default([]),
+  selectedMarkets: z.array(z.string()).optional().default([]),
   minLegOdds: z.number().positive().optional(),
   maxLegOdds: z.number().positive().optional(),
 });

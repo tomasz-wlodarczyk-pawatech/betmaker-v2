@@ -139,26 +139,26 @@ function groupByCountry(leagues: string[]): CountryGroup[] {
     .sort((a, b) => a.country.localeCompare(b.country));
 }
 
-export interface ExcludeSelection {
+export interface LeagueMarketSelection {
   leagues: string[];
   markets: string[];
 }
 
-interface ExcludeLeaguesPanelProps {
+interface LeaguesMarketsPanelProps {
   countryCode: string;
   brandIdentifier: string;
   timeRange?: string;
-  value: ExcludeSelection;
-  onChange: (next: ExcludeSelection) => void;
+  value: LeagueMarketSelection;
+  onChange: (next: LeagueMarketSelection) => void;
 }
 
-const ExcludeLeaguesPanel = memo(function ExcludeLeaguesPanel({
+const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
   countryCode,
   brandIdentifier,
   timeRange = "whenever",
   value,
   onChange,
-}: ExcludeLeaguesPanelProps) {
+}: LeaguesMarketsPanelProps) {
   const [open, setOpen] = useState(false);
   const [popularOpen, setPopularOpen] = useState(true);
   const [otherOpen, setOtherOpen] = useState(false);
@@ -484,20 +484,20 @@ function PanelHeader({
           )}
           <InfoTooltipButton
             inline
-            title="Exclude Leagues & Markets"
+            title="Select Leagues & Markets"
             sections={[
               {
                 title: "Leagues",
                 description:
-                  "Hide whole competitions from the generator. Any pick from an excluded league is skipped, even if it would fit your target odds.",
+                  "Pick the competitions to build from. The generator only uses selected leagues. Leave empty to allow every league.",
               },
               {
                 title: "Markets",
                 description:
-                  "Hide specific bet types (for example BTTS or Over/Under). Excluded markets are never offered, regardless of the event.",
+                  "Pick the bet types to build from (for example BTTS or Over/Under). Only selected markets are offered. Leave empty to allow every market.",
               },
             ]}
-            tip="Excluded items are sticky across regenerations until you remove them or reset filters."
+            tip="Your selection is sticky across regenerations until you change it or reset filters. With nothing selected, the generator uses everything."
           />
         </span>
       </span>
@@ -778,4 +778,4 @@ function FlagFor({ name, size = "md" }: { name: string; size?: FlagProps["size"]
   );
 }
 
-export default ExcludeLeaguesPanel;
+export default LeaguesMarketsPanel;

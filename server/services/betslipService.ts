@@ -1,8 +1,10 @@
 import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
 
 export interface EventFilterOptions {
-  excludedLeagues?: string[];
-  excludedMarkets?: string[];
+  /** Leagues to generate from. Empty means every league is allowed. */
+  selectedLeagues?: string[];
+  /** Markets to generate from. Empty means every market is allowed. */
+  selectedMarkets?: string[];
   /** "whenever" | "today" | "3h" | "48h" | "72h" — anything else means no time filter. */
   timeRange?: string;
 }
@@ -40,18 +42,21 @@ function timeRangeCutoff(timeRange: string): number | null {
 
 /**
  * Apply the user-facing filters to the raw upstream events before any betslip
- * logic runs: a kick-off time window and league/market exclusions. Events with
- * an unparseable start time are kept (lenient) so bad timestamps never silently
- * drop otherwise-valid events. Markets are pruned per event; an event left with
- * no markets is dropped.
+ * logic runs: a kick-off time window and league/market selection. The selection
+ * filters are "only-these" (not exclusions): an empty list means no restriction,
+ * a non-empty list keeps ONLY the chosen leagues/markets. Leagues and markets
+ * compose as AND — selecting both narrows to the chosen markets within the
+ * chosen leagues. Events with an unparseable start time are kept (lenient) so
+ * bad timestamps never silently drop otherwise-valid events. Markets are pruned
+ * per event; an event left with no selected markets is dropped.
  */
 export function filterEvents(
   events: Event[],
   options: EventFilterOptions = {},
 ): Event[] {
   const {
-    excludedLeagues = [],
-    excludedMarkets = [],
+    selectedLeagues = [],
+    selectedMarkets = [],
     timeRange = "whenever",
   } = options;
 
@@ -65,15 +70,21 @@ export function filterEvents(
     });
   }
 
-  if (excludedLeagues.length > 0 || excludedMarkets.length > 0) {
-    const leagueSet = new Set(excludedLeagues);
-    const marketSet = new Set(excludedMarkets);
+  // Keep only the chosen leagues (empty selection = every league allowed).
+  if (selectedLeagues.length > 0) {
+    const leagueSet = new Set(selectedLeagues);
+    result = result.filter((e: any) => leagueSet.has(e?.competition));
+  }
+
+  // Within the surviving events, keep only the chosen markets (empty selection =
+  // every market allowed). Events left with no markets are dropped.
+  if (selectedMarkets.length > 0) {
+    const marketSet = new Set(selectedMarkets);
     result = result
-      .filter((e: any) => !leagueSet.has(e?.competition))
       .map((e: any) => ({
         ...e,
         markets: Array.isArray(e?.markets)
-          ? e.markets.filter((m: any) => !marketSet.has(m?.name))
+          ? e.markets.filter((m: any) => marketSet.has(m?.name))
           : e?.markets,
       }))
       .filter((e: any) => Array.isArray(e?.markets) && e.markets.length > 0);
@@ -232,9 +243,11 @@ export interface SwitchSelectionOptions {
  * event not already in the slip whose odds steer the new combined odds back
  * toward the target, with light randomness so repeat swaps vary.
  *
- * NOTE: only filters by event (not by league/market). A swap can therefore
- * reintroduce a league/market the slip was originally generated with excluded —
- * this matches the embedder's switch contract, which sends only `excludeEventIds`.
+ * NOTE: this only filters by event. The caller is expected to pass events that
+ * have already been narrowed to the selected leagues/markets (the switch route
+ * runs `filterEvents` first), so a swap stays within the same selection. The
+ * `excludeEventIds` here is an unrelated concept — the legs already in the slip,
+ * so the replacement always comes from a fresh event.
  */
 export function findReplacementSelection(
   events: Event[],

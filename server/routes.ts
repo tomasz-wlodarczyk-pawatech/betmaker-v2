@@ -99,8 +99,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minLegOdds,
         maxLegOdds,
         timeRange,
-        excludedLeagues,
-        excludedMarkets,
+        selectedLeagues,
+        selectedMarkets,
       } = generateBetslipSchema.parse(req.body);
 
       const raw = (await getPopularEvents(brandIdentifier)) as
@@ -114,8 +114,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : [];
 
       const events = filterEvents(allEvents, {
-        excludedLeagues,
-        excludedMarkets,
+        selectedLeagues,
+        selectedMarkets,
         timeRange,
       });
 
@@ -247,8 +247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentTotalOdds,
         replacedSelectionOdds,
         timeRange,
-        excludedLeagues,
-        excludedMarkets,
+        selectedLeagues,
+        selectedMarkets,
         minLegOdds,
         maxLegOdds,
       } = switchSelectionSchema.parse(req.body);
@@ -264,8 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : [];
 
       const events = filterEvents(allEvents, {
-        excludedLeagues,
-        excludedMarkets,
+        selectedLeagues,
+        selectedMarkets,
         timeRange,
       });
 
