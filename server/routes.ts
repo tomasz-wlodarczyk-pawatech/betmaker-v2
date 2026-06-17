@@ -17,9 +17,61 @@ import {
 } from "./services/betslipService";
 import {
   getPopularEvents,
+  getCategories,
   getPreferences,
   setPreferences,
 } from "./services/pawagate";
+
+// Build the league filter list from the football categories catalogue. The
+// upstream nests competitions as `withRegions[].regions[].competitions[]`; we
+// flatten each into the same `"<sport> - <region> - <competition>"` string the
+// events carry in their `competition` field, so the selection still matches when
+// the generator filters popular events. The `preferred` flag marks a competition
+// as a popular league. `regionSlugs` maps each region's display name to its
+// upstream slug so the client can resolve a country flag from it.
+function extractLeaguesFromCategories(raw: unknown): {
+  leagues: string[];
+  popularLeagues: string[];
+  regionSlugs: Record<string, string>;
+} {
+  const withRegions = (raw as { withRegions?: any[] })?.withRegions;
+  if (!Array.isArray(withRegions)) {
+    return { leagues: [], popularLeagues: [], regionSlugs: {} };
+  }
+
+  const leagueSet = new Set<string>();
+  const popularSet = new Set<string>();
+  const regionSlugs: Record<string, string> = {};
+
+  for (const entry of withRegions) {
+    const sport = entry?.category?.name;
+    if (typeof sport !== "string") continue;
+    for (const regionEntry of entry?.regions ?? []) {
+      const region = regionEntry?.region?.name;
+      if (typeof region !== "string") continue;
+      const slug = regionEntry?.region?.slug;
+      if (typeof slug === "string" && !(region in regionSlugs)) {
+        regionSlugs[region] = slug;
+      }
+      for (const compEntry of regionEntry?.competitions ?? []) {
+        const competition = compEntry?.competition;
+        const name = competition?.name;
+        if (typeof name !== "string") continue;
+        const raw = `${sport} - ${region} - ${name}`;
+        leagueSet.add(raw);
+        if (competition?.preferred === true) {
+          popularSet.add(raw);
+        }
+      }
+    }
+  }
+
+  return {
+    leagues: Array.from(leagueSet).sort(),
+    popularLeagues: Array.from(popularSet).sort(),
+    regionSlugs,
+  };
+}
 
 // List of supported country codes
 const SUPPORTED_COUNTRIES = [
@@ -309,21 +361,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { brandIdentifier } = availableFiltersSchema.parse(req.body);
 
-      const raw = (await getPopularEvents(brandIdentifier)) as
-        | unknown[]
-        | { status?: string; data?: unknown[] };
+      // Leagues come from the football categories catalogue (full competition
+      // list with a `preferred` popularity flag); markets stay derived from the
+      // popular events. The categories call is non-fatal — if it fails we fall
+      // back to the leagues present in the popular events so the panel still
+      // works.
+      const [rawEvents, rawCategories] = await Promise.all([
+        getPopularEvents(brandIdentifier),
+        getCategories(brandIdentifier).catch((err) => {
+          console.error("Error fetching categories:", err);
+          return null;
+        }),
+      ]);
 
-      const events: any[] = Array.isArray(raw)
-        ? raw
-        : Array.isArray((raw as { data?: unknown[] })?.data)
-          ? ((raw as { data: unknown[] }).data as any[])
+      const events: any[] = Array.isArray(rawEvents)
+        ? rawEvents
+        : Array.isArray((rawEvents as { data?: unknown[] })?.data)
+          ? ((rawEvents as { data: unknown[] }).data as any[])
           : [];
 
-      const leagueSet = new Set<string>();
       const marketSet = new Set<string>();
+      const fallbackLeagueSet = new Set<string>();
       for (const ev of events) {
         if (typeof ev?.competition === "string") {
-          leagueSet.add(ev.competition);
+          fallbackLeagueSet.add(ev.competition);
         }
         if (Array.isArray(ev?.markets)) {
           for (const m of ev.markets) {
@@ -332,8 +393,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      let { leagues, popularLeagues, regionSlugs } =
+        extractLeaguesFromCategories(rawCategories);
+      if (leagues.length === 0) {
+        leagues = Array.from(fallbackLeagueSet).sort();
+        popularLeagues = [];
+        regionSlugs = {};
+      }
+
       return res.json({
-        leagues: Array.from(leagueSet).sort(),
+        leagues,
+        popularLeagues,
+        regionSlugs,
         markets: Array.from(marketSet).sort(),
       });
     } catch (error) {

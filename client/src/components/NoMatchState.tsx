@@ -1,9 +1,14 @@
+import type { ReactNode } from "react";
 import { Alert } from "@aliengain/components";
 import { IconTriangleAlert } from "@aliengain/icons";
+
+type AlertVariant = "success" | "neutral" | "warning" | "error" | "alternative";
 
 interface NoMatchStateProps {
   title?: string;
   description?: string;
+  variant?: AlertVariant;
+  icon?: ReactNode;
 }
 
 const DEFAULT_TITLE = "No betslip matched these filters";
@@ -13,12 +18,14 @@ const DEFAULT_DESCRIPTION =
 export default function NoMatchState({
   title = DEFAULT_TITLE,
   description = DEFAULT_DESCRIPTION,
+  variant = "warning",
+  icon,
 }: NoMatchStateProps) {
   return (
     <div style={{ marginTop: "1rem" }}>
       <Alert
-        variant="warning"
-        icon={<IconTriangleAlert size="md" />}
+        variant={variant}
+        icon={icon ?? <IconTriangleAlert size="md" />}
         title={title}
         description={description}
       />

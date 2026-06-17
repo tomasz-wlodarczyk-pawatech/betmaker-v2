@@ -68,6 +68,10 @@ export async function generateBetslip(
 
 export interface AvailableFilters {
   leagues: string[];
+  /** Subset of `leagues` flagged as popular (upstream `preferred === true`). */
+  popularLeagues: string[];
+  /** Region display name → upstream slug, for resolving a country flag. */
+  regionSlugs: Record<string, string>;
   markets: string[];
 }
 

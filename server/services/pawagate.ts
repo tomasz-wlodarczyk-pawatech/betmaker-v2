@@ -131,6 +131,30 @@ export async function getPopularEvents(brand: string): Promise<unknown> {
   return response.json();
 }
 
+// Sportsbook category id for Football. The categories endpoint is sport-scoped
+// (`/categories/list/:categoryId`); this app only builds football betslips.
+export const FOOTBALL_CATEGORY_ID = "2";
+
+// Fetch the full football league catalogue (regions → competitions) so the
+// league filter can offer every competition, not just the handful that happen
+// to be in `events/popular`. Each competition carries a `preferred` flag that
+// marks it as a popular league.
+export async function getCategories(
+  brand: string,
+  categoryId: string = FOOTBALL_CATEGORY_ID,
+): Promise<unknown> {
+  const response = await fetch(
+    `${PAWAGATE_BASE_URL}/api/sportsbook/v4/categories/list/${categoryId}`,
+    { headers: buildHeaders(brand) },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch categories: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 async function getBonusSchemeId(brand: string): Promise<string> {
   const response = await fetch(
     `${PAWAGATE_BASE_URL}/api/preference/v1/brand-component-data`,

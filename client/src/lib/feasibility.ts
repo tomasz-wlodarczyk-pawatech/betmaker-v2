@@ -14,11 +14,25 @@ export interface FeasibilityInput {
 
 export interface FeasibilityResult {
   feasible: boolean;
-  /** User-facing explanation, set only when !feasible. */
+  /**
+   * Feasible, but only just: reaching the target forces nearly every leg to sit
+   * near the max leg odds, so the real data will usually come up empty. The UI
+   * shows a soft advisory (it does NOT block generation).
+   */
+  tight?: boolean;
+  /** User-facing explanation, set when !feasible OR when tight. */
   reason?: string;
   /** Fewest legs that could reach the target, when that's the blocker. */
   minLegsNeeded?: number;
 }
+
+/**
+ * How much room there must be between the per-leg odds the target demands and
+ * the user's max leg odds before we consider the combo comfortable. A headroom
+ * below this means "to hit the target, almost every leg has to be near the max"
+ * — mathematically possible, but the data rarely supplies it.
+ */
+const TIGHT_HEADROOM = 1.1;
 
 /**
  * Decide whether the chosen filters can *arithmetically* produce a betslip.
@@ -59,16 +73,39 @@ export function checkBetslipFeasibility(
 
   // Iterating whole leg counts (≤ 60) sidesteps every log/divide-by-zero edge
   // case in the detection itself; logs are used only for the message below.
+  // Feasible leg counts form a contiguous range, so the largest feasible n is
+  // also the most forgiving (most legs ⇒ lowest per-leg odds needed).
+  let maxFeasibleN = 0;
   for (let n = minLegs; n <= maxLegs; n++) {
     const reachableHigh = Math.pow(maxLegOdds, n);
     const reachableLow = Math.pow(minLegOdds, n);
     if (reachableHigh >= targetLow && reachableLow <= targetHigh) {
-      return { feasible: true };
+      maxFeasibleN = n;
     }
   }
 
-  // No leg count works — classify why so we can guide the user to the right fix.
   const target = formatOdds(targetOdds);
+
+  if (maxFeasibleN > 0) {
+    // Feasible. Check the most forgiving config (most legs): the per-leg
+    // geometric mean needed just to reach the bottom of the window. If even that
+    // sits within TIGHT_HEADROOM of the max leg odds, the slip is barely
+    // possible — warn softly, but don't block.
+    const requiredMean = Math.max(
+      minLegOdds,
+      Math.pow(targetLow, 1 / maxFeasibleN),
+    );
+    if (maxLegOdds / requiredMean < TIGHT_HEADROOM) {
+      return {
+        feasible: true,
+        tight: true,
+        reason: `To reach ~${target} almost every leg must be near your max leg odds (${formatOdds(maxLegOdds)}). Results may be limited — raise Max Leg Odds or increase Max Legs.`,
+      };
+    }
+    return { feasible: true };
+  }
+
+  // No leg count works — classify why so we can guide the user to the right fix.
 
   // Can't climb high enough: even the most legs at the highest leg odds fall
   // short of the target window. (Ciaran's cases.)

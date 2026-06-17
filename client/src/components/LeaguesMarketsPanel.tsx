@@ -1,51 +1,8 @@
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ComponentType,
-} from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Checkbox, Chip } from "@aliengain/components";
 import InfoTooltipButton from "./InfoTooltipButton";
 import {
-  FlagAr,
-  FlagAt,
-  FlagBe,
-  FlagBr,
-  FlagCa,
-  FlagCh,
-  FlagCl,
-  FlagCn,
-  FlagCz,
-  FlagDe,
-  FlagDk,
-  FlagEs,
-  FlagFi,
-  FlagFr,
-  FlagGbEng,
-  FlagGbSct,
-  FlagGr,
-  FlagHr,
-  FlagHu,
-  FlagIl,
-  FlagIt,
-  FlagJp,
-  FlagKr,
-  FlagMx,
-  FlagNl,
-  FlagNo,
-  FlagPl,
-  FlagPt,
-  FlagRu,
-  FlagSa,
-  FlagSe,
-  FlagSi,
-  FlagSk,
-  FlagTr,
-  FlagUa,
-  FlagUs,
   IconChevronDown,
   IconChevronUp,
   IconFilter,
@@ -54,55 +11,14 @@ import {
   type FlagProps,
 } from "@aliengain/icons";
 import { fetchAvailableFilters, type AvailableFilters } from "@/lib/api";
+import { PawabloxFlag } from "./PawabloxFlag";
 
-const POPULAR_COUNTRIES = new Set([
-  "England",
-  "France",
-  "Germany",
-  "Italy",
-  "Spain",
-]);
-
-const COUNTRY_FLAG: Record<string, ComponentType<Omit<FlagProps, "children">>> =
-  {
-    Argentina: FlagAr,
-    Austria: FlagAt,
-    Belgium: FlagBe,
-    Brazil: FlagBr,
-    Canada: FlagCa,
-    Chile: FlagCl,
-    China: FlagCn,
-    Croatia: FlagHr,
-    "Czech Republic": FlagCz,
-    Czechia: FlagCz,
-    Denmark: FlagDk,
-    England: FlagGbEng,
-    Finland: FlagFi,
-    France: FlagFr,
-    Germany: FlagDe,
-    Greece: FlagGr,
-    Hungary: FlagHu,
-    Israel: FlagIl,
-    Italy: FlagIt,
-    Japan: FlagJp,
-    Mexico: FlagMx,
-    Netherlands: FlagNl,
-    Norway: FlagNo,
-    Poland: FlagPl,
-    Portugal: FlagPt,
-    Russia: FlagRu,
-    "Saudi Arabia": FlagSa,
-    Scotland: FlagGbSct,
-    Slovakia: FlagSk,
-    Slovenia: FlagSi,
-    "South Korea": FlagKr,
-    Spain: FlagEs,
-    Sweden: FlagSe,
-    Switzerland: FlagCh,
-    Turkey: FlagTr,
-    Ukraine: FlagUa,
-    USA: FlagUs,
-  };
+// Fallback region slug when the catalogue didn't carry one: lower-case the
+// display name and hyphenate, which matches the `CountryIsoMap` slug keys for
+// the sportsbook's region names (e.g. "Republic of Korea" → "republic-of-korea").
+function slugifyCountry(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, "-");
+}
 
 interface ParsedLeague {
   raw: string;
@@ -177,16 +93,20 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
     staleTime: 60_000,
   });
 
-  const grouped = useMemo(
-    () => (data?.leagues ? groupByCountry(data.leagues) : []),
-    [data?.leagues],
-  );
-
+  // Split leagues into popular vs other by the upstream `preferred` flag
+  // (carried in `popularLeagues`), then group each partition by country. A
+  // country with both preferred and non-preferred competitions appears in both
+  // sections, each showing only its relevant leagues.
   const { popularCountries, otherCountries } = useMemo(() => {
-    const popular = grouped.filter((g) => POPULAR_COUNTRIES.has(g.country));
-    const other = grouped.filter((g) => !POPULAR_COUNTRIES.has(g.country));
-    return { popularCountries: popular, otherCountries: other };
-  }, [grouped]);
+    const all = data?.leagues ?? [];
+    const popularSet = new Set(data?.popularLeagues ?? []);
+    const popularRaws = all.filter((raw) => popularSet.has(raw));
+    const otherRaws = all.filter((raw) => !popularSet.has(raw));
+    return {
+      popularCountries: groupByCountry(popularRaws),
+      otherCountries: groupByCountry(otherRaws),
+    };
+  }, [data?.leagues, data?.popularLeagues]);
 
   const allLeagues = useMemo(
     () => data?.leagues ?? [],
@@ -200,6 +120,15 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
     }
     return m;
   }, [allLeagues]);
+
+  // Resolve a region's flag slug: prefer the upstream slug from the catalogue,
+  // falling back to a slugified display name so flags still render if the map
+  // is incomplete (e.g. the events-derived fallback path).
+  const regionSlugs = data?.regionSlugs;
+  const slugForCountry = useCallback(
+    (country: string) => regionSlugs?.[country] ?? slugifyCountry(country),
+    [regionSlugs],
+  );
 
   const totalSelected = value.leagues.length + value.markets.length;
 
@@ -230,10 +159,7 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
   );
 
   const handleToggleCountry = useCallback(
-    (country: string) => {
-      const group = grouped.find((g) => g.country === country);
-      if (!group) return;
-      const countryLeagueIds = group.leagues.map((l) => l.raw);
+    (countryLeagueIds: string[]) => {
       const selectedSet = new Set(value.leagues);
       const allSelected = countryLeagueIds.every((id) => selectedSet.has(id));
       if (allSelected) {
@@ -243,7 +169,7 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
       }
       onChange({ leagues: Array.from(selectedSet), markets: value.markets });
     },
-    [grouped, value.leagues, value.markets, onChange],
+    [value.leagues, value.markets, onChange],
   );
 
   const handleClearAll = useCallback(() => {
@@ -272,20 +198,25 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
   }, []);
 
   const selectedChips = useMemo(() => {
-    const leagues = value.leagues.map((raw) => ({
-      raw,
-      kind: "league" as const,
-      label: leaguesByName.get(raw)?.name ?? raw,
-      country: leaguesByName.get(raw)?.country ?? "",
-    }));
+    const leagues = value.leagues.map((raw) => {
+      const country = leaguesByName.get(raw)?.country ?? "";
+      return {
+        raw,
+        kind: "league" as const,
+        label: leaguesByName.get(raw)?.name ?? raw,
+        country,
+        slug: country ? slugForCountry(country) : undefined,
+      };
+    });
     const markets = value.markets.map((raw) => ({
       raw,
       kind: "market" as const,
       label: raw,
       country: "",
+      slug: undefined,
     }));
     return [...leagues, ...markets];
-  }, [value, leaguesByName]);
+  }, [value, leaguesByName, slugForCountry]);
 
   return (
     <div
@@ -340,27 +271,34 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
 
           {!isLoading && !error && (
             <>
-              <SectionAccordion
-                title="Popular Leagues"
-                open={popularOpen}
-                onToggle={() => setPopularOpen((v) => !v)}
-              >
-                {popularCountries.map((group) => (
-                  <CountryRow
-                    key={group.country}
-                    group={group}
-                    open={openCountries[group.country] ?? false}
-                    selectedLeagues={value.leagues}
-                    onToggleOpen={() => toggleCountryOpen(group.country)}
-                    onToggleCountry={() => handleToggleCountry(group.country)}
-                    onToggleLeague={handleToggleLeague}
-                  />
-                ))}
-              </SectionAccordion>
+              {popularCountries.length > 0 && (
+                <SectionAccordion
+                  title="Popular Leagues"
+                  open={popularOpen}
+                  onToggle={() => setPopularOpen((v) => !v)}
+                >
+                  {popularCountries.map((group) => (
+                    <CountryRow
+                      key={group.country}
+                      group={group}
+                      countrySlug={slugForCountry(group.country)}
+                      open={openCountries[`popular:${group.country}`] ?? false}
+                      selectedLeagues={value.leagues}
+                      onToggleOpen={() =>
+                        toggleCountryOpen(`popular:${group.country}`)
+                      }
+                      onToggleCountry={() =>
+                        handleToggleCountry(group.leagues.map((l) => l.raw))
+                      }
+                      onToggleLeague={handleToggleLeague}
+                    />
+                  ))}
+                </SectionAccordion>
+              )}
 
               {otherCountries.length > 0 && (
                 <>
-                  <Divider />
+                  {popularCountries.length > 0 && <Divider />}
                   <SectionAccordion
                     title="Other Leagues"
                     open={otherOpen}
@@ -370,11 +308,14 @@ const LeaguesMarketsPanel = memo(function LeaguesMarketsPanel({
                       <CountryRow
                         key={group.country}
                         group={group}
-                        open={openCountries[group.country] ?? false}
+                        countrySlug={slugForCountry(group.country)}
+                        open={openCountries[`other:${group.country}`] ?? false}
                         selectedLeagues={value.leagues}
-                        onToggleOpen={() => toggleCountryOpen(group.country)}
+                        onToggleOpen={() =>
+                          toggleCountryOpen(`other:${group.country}`)
+                        }
                         onToggleCountry={() =>
-                          handleToggleCountry(group.country)
+                          handleToggleCountry(group.leagues.map((l) => l.raw))
                         }
                         onToggleLeague={handleToggleLeague}
                       />
@@ -520,6 +461,7 @@ function ChipsRow({
     kind: "league" | "market";
     label: string;
     country: string;
+    slug?: string;
   }>;
   onClear: () => void;
   onRemove: (raw: string, kind: "league" | "market") => void;
@@ -550,7 +492,7 @@ function ChipsRow({
           size="sm"
           active
           rightIcon={<IconX size="sm" />}
-          leftIcon={chip.kind === "league" ? <FlagFor name={chip.country} size="sm" /> : undefined}
+          leftIcon={chip.kind === "league" ? <FlagFor slug={chip.slug} size="sm" /> : undefined}
           onClick={() => onRemove(chip.raw, chip.kind)}
           style={{ flex: "0 0 auto" }}
         >
@@ -630,6 +572,7 @@ function SectionAccordion({
 
 function CountryRow({
   group,
+  countrySlug,
   open,
   selectedLeagues,
   onToggleOpen,
@@ -637,6 +580,7 @@ function CountryRow({
   onToggleLeague,
 }: {
   group: CountryGroup;
+  countrySlug: string;
   open: boolean;
   selectedLeagues: string[];
   onToggleOpen: () => void;
@@ -667,7 +611,7 @@ function CountryRow({
           onChange={onToggleCountry}
           aria-label={`Toggle all leagues in ${group.country}`}
         />
-        <FlagFor name={group.country} size="md" />
+        <FlagFor slug={countrySlug} size="md" />
         <button
           type="button"
           onClick={onToggleOpen}
@@ -765,15 +709,26 @@ function CheckboxRow({
   );
 }
 
-function FlagFor({ name, size = "md" }: { name: string; size?: FlagProps["size"] }) {
-  const FlagComp = COUNTRY_FLAG[name];
-  if (FlagComp) {
-    return <FlagComp size={size} variant="circle" aspectRatio="1x1" />;
-  }
+// Render a region's flag from its slug (or ISO code), resolved through the same
+// CountryIsoMap the sportsbook uses. Falls back to a globe icon for regions
+// without a national flag (e.g. "International") or unknown slugs.
+function FlagFor({
+  slug,
+  size = "md",
+}: {
+  slug?: string;
+  size?: FlagProps["size"];
+}) {
   return (
-    <IconGlobe
-      size={size === "sm" ? "sm" : "md"}
-      color="var(--colors-icon-primary)"
+    <PawabloxFlag
+      slug={slug}
+      size={size}
+      fallback={
+        <IconGlobe
+          size={size === "sm" ? "sm" : "md"}
+          color="var(--colors-icon-primary)"
+        />
+      }
     />
   );
 }

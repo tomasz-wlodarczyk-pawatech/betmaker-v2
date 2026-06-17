@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Button } from "@aliengain/components";
+import { IconCircleInfo } from "@aliengain/icons";
 import BetslipTypeCard, { type BetslipType } from "@/components/BetslipTypeCard";
 import OddsInput from "@/components/OddsInput";
 import FiltersCard, {
@@ -233,6 +234,15 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           />
         )}
 
+        {feasibility.feasible && feasibility.tight && (
+          <NoMatchState
+            variant="neutral"
+            icon={<IconCircleInfo size="md" />}
+            title="These filters are very tight"
+            description={feasibility.reason}
+          />
+        )}
+
         <Button
           title="GENERATE SELECTIONS"
           variant="primary"
@@ -256,7 +266,9 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           />
         )}
 
-        {noMatchFound && feasibility.feasible && <NoMatchState />}
+        {noMatchFound && feasibility.feasible && !feasibility.tight && (
+          <NoMatchState />
+        )}
 
         {betslipResult && (
           <BetslipResults
