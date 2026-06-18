@@ -118,14 +118,21 @@ export async function setPreferences(
   }
 }
 
-export async function getPopularEvents(brand: string): Promise<unknown> {
+// Fetch the FULL upcoming-events set (all leagues with odds), not just the
+// handful of "popular" events. This is the single source of truth the betslip
+// generator AND the league/market filter both draw from, so a league offered in
+// the filter is always one the generator can actually build from. `events/all`
+// returns the exact same shape as `events/popular` (`event_id`, string
+// `competition`, `markets[].selections[].{odds,hot}`), so no normalisation is
+// needed.
+export async function getAllEvents(brand: string): Promise<unknown> {
   const response = await fetch(
-    `${PAWAGATE_BASE_URL}/api/sportsbook-plus/v1/events/popular`,
+    `${PAWAGATE_BASE_URL}/api/sportsbook-plus/v1/events/all`,
     { headers: buildHeaders(brand) },
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch popular events: ${response.status}`);
+    throw new Error(`Failed to fetch events: ${response.status}`);
   }
 
   return response.json();

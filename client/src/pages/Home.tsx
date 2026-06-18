@@ -250,6 +250,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           fullWidth
           onClick={handleGenerateBetslip}
           disabled={processing}
+          isLoading={processing}
         />
 
         {processing && (

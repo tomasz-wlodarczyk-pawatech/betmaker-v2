@@ -16,7 +16,7 @@ import {
   filterEvents,
 } from "./services/betslipService";
 import {
-  getPopularEvents,
+  getAllEvents,
   getCategories,
   getPreferences,
   setPreferences,
@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         selectedMarkets,
       } = generateBetslipSchema.parse(req.body);
 
-      const raw = (await getPopularEvents(brandIdentifier)) as
+      const raw = (await getAllEvents(brandIdentifier)) as
         | unknown[]
         | { status?: string; data?: unknown[] };
 
@@ -305,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxLegOdds,
       } = switchSelectionSchema.parse(req.body);
 
-      const raw = (await getPopularEvents(brandIdentifier)) as
+      const raw = (await getAllEvents(brandIdentifier)) as
         | unknown[]
         | { status?: string; data?: unknown[] };
 
@@ -361,13 +361,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { brandIdentifier } = availableFiltersSchema.parse(req.body);
 
-      // Leagues come from the football categories catalogue (full competition
-      // list with a `preferred` popularity flag); markets stay derived from the
-      // popular events. The categories call is non-fatal — if it fails we fall
-      // back to the leagues present in the popular events so the panel still
-      // works.
+      // Leagues AND markets are derived from `events/all` — the same source the
+      // generator builds from — so every league/market the filter offers is one
+      // the generator can actually produce (no "select Australia → 404"). The
+      // categories catalogue is only used to enrich those leagues: it marks
+      // which are `preferred` (popular) and maps each region to a slug for the
+      // flag. The categories call is non-fatal — if it fails the panel still
+      // works, just without the popular flag / region slugs.
       const [rawEvents, rawCategories] = await Promise.all([
-        getPopularEvents(brandIdentifier),
+        getAllEvents(brandIdentifier),
         getCategories(brandIdentifier).catch((err) => {
           console.error("Error fetching categories:", err);
           return null;
@@ -381,10 +383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : [];
 
       const marketSet = new Set<string>();
-      const fallbackLeagueSet = new Set<string>();
+      const eventLeagueSet = new Set<string>();
       for (const ev of events) {
         if (typeof ev?.competition === "string") {
-          fallbackLeagueSet.add(ev.competition);
+          eventLeagueSet.add(ev.competition);
         }
         if (Array.isArray(ev?.markets)) {
           for (const m of ev.markets) {
@@ -393,13 +395,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      let { leagues, popularLeagues, regionSlugs } =
-        extractLeaguesFromCategories(rawCategories);
-      if (leagues.length === 0) {
-        leagues = Array.from(fallbackLeagueSet).sort();
-        popularLeagues = [];
-        regionSlugs = {};
-      }
+      // Leagues = exactly the competitions present in events/all.
+      const leagues = Array.from(eventLeagueSet).sort();
+      // Keep only the catalogue's popular flags that survive in the event set,
+      // so we never flag a league the generator can't build from.
+      const catalogue = extractLeaguesFromCategories(rawCategories);
+      const popularLeagues = catalogue.popularLeagues.filter((l) =>
+        eventLeagueSet.has(l),
+      );
+      const regionSlugs = catalogue.regionSlugs;
 
       return res.json({
         leagues,

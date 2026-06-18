@@ -212,6 +212,11 @@ const flagLoaders: Record<
   YE: () => import('@aliengain/icons/flags/FlagYe'),
   ZA: () => import('@aliengain/icons/flags/FlagZa'),
   ZM: () => import('@aliengain/icons/flags/FlagZm'),
+  // Supranational regions have no national flag. Map the "International" region
+  // (World Cup, UEFA competitions, …) to the globe flag so it matches the
+  // circular country flags instead of falling back to a generic icon.
+  INTERNATIONAL: () => import('@aliengain/icons/flags/FlagWorld'),
+  WORLD: () => import('@aliengain/icons/flags/FlagWorld'),
 };
 
 /** Cache resolved flag components to avoid re-importing */
