@@ -29,7 +29,10 @@ const SaveToast = memo(function SaveToast({
         transform: "translateX(-50%)",
         width: "calc(100vw - 1.5rem)",
         maxWidth: "30.5rem",
-        zIndex: 1000,
+        // Must sit above the generated-betslip bottom-sheet (z-index 1050) and
+        // its backdrop (1040), plus pawablox's top overlay layer (tooltip 1070);
+        // otherwise the save confirmation is hidden under the results window.
+        zIndex: 1100,
         pointerEvents: "none",
       }}
     >
