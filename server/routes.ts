@@ -236,8 +236,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       )?.rootDomain;
 
       const response = await axios.post(
-        `${pawagateBase}/api/sportsbook/v2/booking-number`,
-        { selections: selectionIds },
+        `${pawagateBase}/api/sportsbook/v3/booking-number`,
+        {
+          selections: {
+            selections: selectionIds.map((id) => ({
+              type: "SINGLE",
+              selections: [Number(id)],
+            })),
+          },
+        },
         {
           headers: {
             "Content-Type": "application/json",
