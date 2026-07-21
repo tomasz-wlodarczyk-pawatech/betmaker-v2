@@ -216,6 +216,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           legOdds={legOdds}
           onLegOddsChange={setLegOdds}
           legOddsMax={legOddsCap}
+          targetOdds={targetOdds}
         />
 
         <LeaguesMarketsPanel

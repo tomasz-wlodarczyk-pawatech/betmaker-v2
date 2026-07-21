@@ -133,3 +133,113 @@ export function checkBetslipFeasibility(
     reason: `No whole number of legs lands within ±15% of ${target} at these leg odds. Widen your leg-odds range.`,
   };
 }
+
+export interface RandomFilterBounds {
+  /** Target total odds the slip must reach (the product of all legs). */
+  targetOdds: number;
+  /** Hard floor for any leg's odds (LEG_ODDS_MIN). */
+  legOddsMin: number;
+  /** Hard ceiling for any leg's odds — already capped to the target upstream. */
+  legOddsMax: number;
+  /** Smallest number of legs the UI allows (LEGS_MIN). */
+  legsMin: number;
+  /** Largest number of legs the UI allows (LEGS_MAX). */
+  legsMax: number;
+}
+
+export interface RandomFilterResult {
+  legOdds: [number, number];
+  legs: [number, number];
+}
+
+/**
+ * Per-leg odds floor for the randomiser. Real selections rarely sit below ~1.1,
+ * so we refuse leg counts whose required geometric mean drops under this — those
+ * only look feasible on paper (1.01^60 ≈ 1.8) but never produce real slips.
+ */
+const RANDOM_MEAN_FLOOR = 1.15;
+
+/**
+ * Produce a random-but-*achievable* filter set for the given target.
+ *
+ * The old randomiser rolled leg-odds and leg-count ranges independently of the
+ * target, so it almost always landed outside the target window and tripped the
+ * "these filters can't make a betslip" gate. This instead anchors on the maths:
+ * total odds = product of legs, so `n` legs need a per-leg geometric mean of
+ * `target^(1/n)`. We keep only the leg counts whose mean is both believable
+ * (≥ RANDOM_MEAN_FLOOR) and clears the max-leg-odds cap with enough headroom to
+ * avoid the "tight" advisory, pick one, then spread a leg-odds and leg-count
+ * window around it. Every candidate is re-checked with checkBetslipFeasibility,
+ * and a guaranteed-feasible window is returned if the random rolls fall short —
+ * so the randomiser can never hand back an impossible combination.
+ */
+export function randomiseFeasibleFilters(
+  bounds: RandomFilterBounds,
+): RandomFilterResult {
+  const { targetOdds } = bounds;
+  const legOddsMin = Math.max(1.01, bounds.legOddsMin);
+  const legOddsMax = Math.max(legOddsMin, bounds.legOddsMax);
+  const legsMin = Math.max(1, Math.floor(bounds.legsMin));
+  const legsMax = Math.max(legsMin, Math.floor(bounds.legsMax));
+
+  const geoMean = (n: number) => Math.pow(targetOdds, 1 / n);
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const rand = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
+
+  // Leg counts whose required per-leg mean is realistic AND leaves headroom
+  // below the cap (so the result reads as comfortable, never "tight").
+  const candidates: number[] = [];
+  for (let n = legsMin; n <= legsMax; n++) {
+    const mean = geoMean(n);
+    if (mean >= RANDOM_MEAN_FLOOR && mean <= legOddsMax / TIGHT_HEADROOM) {
+      candidates.push(n);
+    }
+  }
+
+  const fallback = (): RandomFilterResult => {
+    const n =
+      candidates.length > 0
+        ? candidates[Math.floor(candidates.length / 2)]
+        : Math.min(
+            legsMax,
+            Math.max(
+              legsMin,
+              Math.round(Math.log(targetOdds) / Math.log(Math.max(1.2, legOddsMax))),
+            ),
+          );
+    // The widest allowed leg-odds window with a valid leg count is always both
+    // feasible and non-tight (see checkBetslipFeasibility), so this can't fail.
+    return {
+      legOdds: [legOddsMin, legOddsMax],
+      legs: [n, Math.min(legsMax, n + 2)],
+    };
+  };
+
+  if (candidates.length === 0) return fallback();
+
+  // Try a handful of varied rolls; verify each against the real feasibility
+  // check and only accept feasible, non-tight sets.
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const n = candidates[Math.floor(Math.random() * candidates.length)];
+    const mean = geoMean(n);
+
+    const hi = round2(Math.min(legOddsMax, mean * rand(1.35, 2.2)));
+    const lo = round2(Math.max(legOddsMin, Math.min(mean * rand(0.55, 0.85), hi)));
+
+    const legsLo = Math.max(legsMin, n - Math.floor(Math.random() * 3));
+    const legsHi = Math.min(legsMax, n + Math.floor(Math.random() * 4));
+
+    const check = checkBetslipFeasibility({
+      targetOdds,
+      minLegOdds: lo,
+      maxLegOdds: hi,
+      minLegs: legsLo,
+      maxLegs: legsHi,
+    });
+    if (check.feasible && !check.tight) {
+      return { legOdds: [lo, hi], legs: [legsLo, legsHi] };
+    }
+  }
+
+  return fallback();
+}

@@ -15,6 +15,7 @@ import {
 import InfoTooltipButton from "./InfoTooltipButton";
 import type { InfoSection } from "./InfoModal";
 import { DualSliderTrack } from "./DualSliderTrack";
+import { randomiseFeasibleFilters } from "@/lib/feasibility";
 
 export const LEG_ODDS_MIN = 1.01;
 export const LEG_ODDS_MAX = 100;
@@ -39,6 +40,9 @@ interface FiltersCardProps {
   // Upper bound for leg odds, capped to the Target Total Odds: a single leg can
   // never exceed the slip total, so leg odds above the target are impossible.
   legOddsMax: number;
+  // Target total odds the slip must reach — the randomiser needs it to roll a
+  // leg-odds/leg-count combination that can actually produce a betslip.
+  targetOdds: number;
 }
 
 const FiltersCard = memo(function FiltersCard({
@@ -51,6 +55,7 @@ const FiltersCard = memo(function FiltersCard({
   legOdds,
   onLegOddsChange,
   legOddsMax,
+  targetOdds,
 }: FiltersCardProps) {
   const [open, setOpen] = useState(true);
 
@@ -64,26 +69,34 @@ const FiltersCard = memo(function FiltersCard({
   }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange, legOddsMax]);
 
   const handleRandomise = useCallback(() => {
-    const oddsA = LEG_ODDS_MIN + Math.random() * (legOddsMax - LEG_ODDS_MIN);
-    const oddsB = LEG_ODDS_MIN + Math.random() * (legOddsMax - LEG_ODDS_MIN);
-    const roundOdds = (n: number) => Math.round(n * 100) / 100;
-    onLegOddsChange([
-      roundOdds(Math.min(oddsA, oddsB)),
-      roundOdds(Math.max(oddsA, oddsB)),
-    ]);
+    // Roll a leg-odds/leg-count window that can actually reach the target — the
+    // maths (total odds = product of legs) is baked into the helper, so this can
+    // never produce a combination the feasibility gate would reject.
+    const { legOdds: nextLegOdds, legs: nextLegs } = randomiseFeasibleFilters({
+      targetOdds,
+      legOddsMin: LEG_ODDS_MIN,
+      legOddsMax,
+      legsMin: LEGS_MIN,
+      legsMax: LEGS_MAX,
+    });
+    onLegOddsChange(nextLegOdds);
+    onLegsChange(nextLegs);
 
-    const legsA =
-      Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
-    const legsB =
-      Math.floor(Math.random() * (LEGS_MAX - LEGS_MIN + 1)) + LEGS_MIN;
-    onLegsChange([Math.min(legsA, legsB), Math.max(legsA, legsB)]);
-
+    // Mode and Time don't affect whether the target is reachable, so they stay
+    // fully random for variety.
     const modes: ModeId[] = ["all", "hot", "fav"];
     onModeChange(modes[Math.floor(Math.random() * modes.length)]);
 
     const times: TimeId[] = ["any", "today", "3h", "48h", "72h"];
     onTimeChange(times[Math.floor(Math.random() * times.length)]);
-  }, [onModeChange, onTimeChange, onLegsChange, onLegOddsChange, legOddsMax]);
+  }, [
+    targetOdds,
+    onModeChange,
+    onTimeChange,
+    onLegsChange,
+    onLegOddsChange,
+    legOddsMax,
+  ]);
 
   const dirty =
     legOdds[0] !== legOddsDefault[0] ||
