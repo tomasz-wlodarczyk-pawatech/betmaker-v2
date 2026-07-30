@@ -253,7 +253,12 @@ export function findReplacementSelection(
   events: Event[],
   options: SwitchSelectionOptions,
 ): BetSlipSelection | null {
-  const mode = options.selectionMode === "hot" ? "hot" : "all";
+  // A swap must stay inside the mode the slip was built in, or a Favorites slip
+  // would quietly gain a non-favourite leg on the first switch.
+  const mode =
+    options.selectionMode === "hot" || options.selectionMode === "fav"
+      ? options.selectionMode
+      : "all";
   const all = filterByLegOdds(
     getHotSelections(events, mode),
     options.minLegOdds,
@@ -392,7 +397,33 @@ function findCombinationWithCount(
 }
 
 /**
- * Extract all hot selections from events
+ * The favourite of a match is the team the book prices lowest, so Favorites
+ * mode only looks at the match-result market and only at its two team outcomes:
+ * the draw is never a "favourite" even on the rare card where it is priced
+ * below one of the teams. Upstream names this market `1X2 | Full Time` with
+ * selections `1` / `X` / `2`.
+ */
+const MATCH_RESULT_MARKET_PREFIX = "1X2";
+const TEAM_OUTCOMES = new Set(["1", "2"]);
+
+function isFavouriteCandidate(marketName: string, selectionName: string): boolean {
+  return (
+    marketName.trim().startsWith(MATCH_RESULT_MARKET_PREFIX) &&
+    TEAM_OUTCOMES.has(selectionName.trim())
+  );
+}
+
+/**
+ * Flatten events into the candidate pool the combination finders work from,
+ * narrowed by the caller's selection mode:
+ *
+ * - `all` — every selection of every market. A superset of the other two modes.
+ * - `hot` — only selections the upstream flags as hot (`hot === 1`).
+ * - `fav` — one leg per event: the favoured team, i.e. the cheaper of the two
+ *   sides in the match-result market (1.12 vs 2.45 → the 1.12 side).
+ *
+ * Selections with unparseable odds are dropped in every mode: they can't take
+ * part in a product, and leaving them in would let a `NaN` poison a slip.
  */
 function getHotSelections(
   events: Event[],
@@ -401,22 +432,47 @@ function getHotSelections(
   const selections: HotSelection[] = [];
 
   events.forEach((event) => {
+    // Favorites compares across the event's markets (there is only ever one
+    // match-result market, but the winner is tracked per event so a duplicate
+    // upstream market can't contribute two legs for the same match).
+    let favourite: HotSelection | null = null;
+
     event.markets.forEach((market) => {
       market.selections.forEach((selection) => {
         if (mode === "hot" && selection.hot !== 1) return;
-        selections.push({
+        if (mode === "fav" && !isFavouriteCandidate(market.name, selection.name))
+          return;
+
+        const odds = parseFloat(selection.odds);
+        if (!Number.isFinite(odds)) return;
+
+        const candidate: HotSelection = {
           id: selection.id,
           name: selection.name,
-          odds: parseFloat(selection.odds),
+          odds,
           eventId: event.event_id,
           eventName: event.event_name,
           competition: event.competition,
           marketName: market.name,
           startTime: event.start_time,
           isHot: selection.hot === 1,
-        });
+        };
+
+        if (mode === "fav") {
+          // Ties keep the first one seen, matching the upstream ordering.
+          if (favourite === null || candidate.odds < favourite.odds) {
+            favourite = candidate;
+          }
+          return;
+        }
+
+        selections.push(candidate);
       });
     });
+
+    if (favourite !== null) {
+      selections.push(favourite);
+    }
   });
 
   return selections;
