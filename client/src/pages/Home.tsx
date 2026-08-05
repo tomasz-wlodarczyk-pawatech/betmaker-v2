@@ -16,7 +16,11 @@ import LeaguesMarketsPanel, {
 import SavedBetslipsCard from "@/components/SavedBetslipsCard";
 import SaveToast from "@/components/SaveToast";
 import { generateBetslip } from "@/lib/api";
-import { checkBetslipFeasibility } from "@/lib/feasibility";
+import {
+  checkBetslipFeasibility,
+  describePoolInfeasibility,
+} from "@/lib/feasibility";
+import type { BetslipDiagnostics } from "@shared/schema";
 import { BetSlipResult } from "@/types";
 import { useCountries, getCountryByBrand } from "@/hooks/use-countries";
 import BetslipResults from "@/components/BetslipResults";
@@ -53,6 +57,9 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     null,
   );
   const [noMatchFound, setNoMatchFound] = useState(false);
+  const [noMatchDiagnostics, setNoMatchDiagnostics] = useState<
+    BetslipDiagnostics | undefined
+  >(undefined);
   const [error, setError] = useState(false);
   const [invalidBrand, setInvalidBrand] = useState(false);
   const [selected, setSelected] = useState<LeagueMarketSelection>({
@@ -110,6 +117,13 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     [targetOdds, legOdds, legs],
   );
 
+  // Why the last generate came back empty, when the server could name it. Null
+  // falls back to NoMatchState's generic copy.
+  const poolReason = useMemo(
+    () => describePoolInfeasibility(noMatchDiagnostics),
+    [noMatchDiagnostics],
+  );
+
   const handleGenerateBetslip = useCallback(async () => {
     if (invalidBrand) return;
 
@@ -118,6 +132,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     if (!feasibility.feasible) return;
 
     setNoMatchFound(false);
+    setNoMatchDiagnostics(undefined);
     setBetslipResult(null);
     setError(false);
     setProcessing(true);
@@ -135,22 +150,31 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
     }, 200);
 
     try {
-      const result = await generateBetslip(countryCode, targetOdds, {
-        timeRange: time === "any" ? "whenever" : time,
-        selectionMode: mode,
-        minSelections: legs[0],
-        maxSelections: legs[1],
-        minLegOdds: legOdds[0],
-        maxLegOdds: legOdds[1],
-        selectedLeagues: selected.leagues,
-        selectedMarkets: selected.markets,
-      });
+      const { result, diagnostics } = await generateBetslip(
+        countryCode,
+        targetOdds,
+        {
+          timeRange: time === "any" ? "whenever" : time,
+          selectionMode: mode,
+          minSelections: legs[0],
+          maxSelections: legs[1],
+          minLegOdds: legOdds[0],
+          maxLegOdds: legOdds[1],
+          selectedLeagues: selected.leagues,
+          selectedMarkets: selected.markets,
+        },
+      );
 
       clearInterval(progressInterval);
       setProcessingProgress(100);
       setTimeout(() => {
         setProcessing(false);
-        result ? setBetslipResult(result) : setNoMatchFound(true);
+        if (result) {
+          setBetslipResult(result);
+        } else {
+          setNoMatchDiagnostics(diagnostics);
+          setNoMatchFound(true);
+        }
       }, 300);
     } catch (error) {
       clearInterval(progressInterval);
@@ -269,7 +293,7 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
         )}
 
         {noMatchFound && feasibility.feasible && !feasibility.tight && (
-          <NoMatchState />
+          <NoMatchState {...(poolReason ?? {})} />
         )}
 
         {betslipResult && (

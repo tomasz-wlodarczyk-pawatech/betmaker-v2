@@ -12,6 +12,7 @@ import {
 } from "@shared/schema";
 import {
   generateBetslip,
+  describeInfeasibility,
   findReplacementSelection,
   filterEvents,
 } from "./services/betslipService";
@@ -171,18 +172,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeRange,
       });
 
-      const betslip = await generateBetslip(events, targetOdds, 0.15, {
+      const generateOptions = {
         selectionMode,
         minSelections,
         maxSelections,
         minLegOdds,
         maxLegOdds,
-      });
+      };
+
+      const betslip = await generateBetslip(
+        events,
+        targetOdds,
+        0.15,
+        generateOptions,
+      );
 
       if (!betslip) {
-        return res
-          .status(404)
-          .json({ message: "No suitable betslip found for the target odds" });
+        // Ship the reason with the 404 so the client can explain the dead end
+        // (e.g. "only 7 hot matches start today, max total 40.0") instead of the
+        // generic no-match copy. Wording lives client-side.
+        return res.status(404).json({
+          message: "No suitable betslip found for the target odds",
+          diagnostics: describeInfeasibility(
+            events,
+            targetOdds,
+            0.15,
+            generateOptions,
+          ),
+        });
       }
 
       res.json(betslip);

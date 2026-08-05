@@ -1,4 +1,5 @@
 import { Event, BetSlipResult, BetSlipSelection, HotSelection } from "@/types";
+import type { BetslipDiagnostics } from "@shared/schema";
 
 export interface EventFilterOptions {
   /** Leagues to generate from. Empty means every league is allowed. */
@@ -217,6 +218,87 @@ export async function generateBetslip(
   }
 
   return null;
+}
+
+/**
+ * Explain why `generateBetslip` came back empty, so the UI can say more than
+ * "no betslip matched these filters".
+ *
+ * The reachable total-odds window follows from the pool: a slip takes at most one
+ * leg per event, and decimal odds are always > 1, so the highest total is the
+ * `maxSel` priciest legs multiplied together and the lowest is the `minSel`
+ * cheapest. If the target window sits outside that span, no search could ever
+ * have succeeded and we can name the exact blocker; if it sits inside, the target
+ * was reachable in principle and the generic message stands.
+ *
+ * Call this only after a null result — it re-derives the pool (a couple of passes
+ * over the already-filtered events) rather than complicating the hot path.
+ */
+export function describeInfeasibility(
+  events: Event[],
+  targetOdds: number,
+  tolerance: number = 0.15,
+  options: GenerateBetslipOptions = {},
+): BetslipDiagnostics {
+  const pool = filterByLegOdds(
+    getHotSelections(events, options.selectionMode ?? "all"),
+    options.minLegOdds,
+    options.maxLegOdds,
+  );
+
+  const bestByEvent = new Map<string, number>();
+  const worstByEvent = new Map<string, number>();
+  for (const s of pool) {
+    const best = bestByEvent.get(s.eventId);
+    if (best === undefined || s.odds > best) bestByEvent.set(s.eventId, s.odds);
+    const worst = worstByEvent.get(s.eventId);
+    if (worst === undefined || s.odds < worst)
+      worstByEvent.set(s.eventId, s.odds);
+  }
+
+  const availableLegs = bestByEvent.size;
+  if (availableLegs === 0) {
+    return { reason: "no-selections", availableLegs: 0 };
+  }
+
+  const minSel = Math.max(1, Math.floor(options.minSelections ?? 1));
+  if (minSel > availableLegs) {
+    return { reason: "not-enough-events", availableLegs, requiredLegs: minSel };
+  }
+  const maxSel = Math.min(
+    Math.floor(options.maxSelections ?? availableLegs),
+    availableLegs,
+  );
+
+  const product = (odds: number[]) => odds.reduce((acc, o) => acc * o, 1);
+  const maxReachableOdds = product(
+    Array.from(bestByEvent.values())
+      .sort((a, b) => b - a)
+      .slice(0, maxSel),
+  );
+  const minReachableOdds = product(
+    Array.from(worstByEvent.values())
+      .sort((a, b) => a - b)
+      .slice(0, minSel),
+  );
+
+  if (maxReachableOdds < targetOdds * (1 - tolerance)) {
+    return { reason: "target-too-high", availableLegs, maxReachableOdds };
+  }
+  if (minReachableOdds > targetOdds * (1 + tolerance)) {
+    return {
+      reason: "target-too-low",
+      availableLegs,
+      minReachableOdds,
+      requiredLegs: minSel,
+    };
+  }
+  return {
+    reason: "no-combination",
+    availableLegs,
+    maxReachableOdds,
+    minReachableOdds,
+  };
 }
 
 export interface SwitchSelectionOptions {

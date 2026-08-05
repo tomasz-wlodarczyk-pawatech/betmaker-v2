@@ -125,6 +125,32 @@ export const switchSelectionSchema = z.object({
   maxLegOdds: z.number().positive().optional(),
 });
 
+/**
+ * Why a generate request couldn't produce a betslip. The first four are cases we
+ * can name from the candidate pool alone; `no-combination` is the catch-all for
+ * "the target sits inside what the pool can reach, but no actual subset landed in
+ * the window" (including the search timing out), and keeps the generic message.
+ */
+export type InfeasibilityReason =
+  | "no-selections"
+  | "not-enough-events"
+  | "target-too-high"
+  | "target-too-low"
+  | "no-combination";
+
+/** Diagnostics returned alongside the 404 from `/betslip/generate`. */
+export interface BetslipDiagnostics {
+  reason: InfeasibilityReason;
+  /** Legs the filters leave to build from — at most one per event. */
+  availableLegs: number;
+  /** Highest total odds those legs can reach, honouring Max Legs. */
+  maxReachableOdds?: number;
+  /** Lowest total odds they can reach, honouring Min Legs. */
+  minReachableOdds?: number;
+  /** Legs the request demands at minimum (Min Legs), when that's the blocker. */
+  requiredLegs?: number;
+}
+
 export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
 export type GenerateBookingCodeRequest = z.infer<
   typeof generateBookingCodeSchema

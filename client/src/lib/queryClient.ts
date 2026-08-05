@@ -1,9 +1,34 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/**
+ * A failed response, keeping the status and raw body addressable so callers can
+ * read a structured error payload. The `message` format is unchanged
+ * (`"<status>: <body>"`), so existing `message.startsWith("404")` checks still
+ * work on it.
+ */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly body: string,
+  ) {
+    super(`${status}: ${body}`);
+    this.name = "ApiError";
+  }
+
+  /** The body parsed as JSON, or null when it isn't JSON. */
+  json<T>(): T | null {
+    try {
+      return JSON.parse(this.body) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    throw new ApiError(res.status, text);
   }
 }
 

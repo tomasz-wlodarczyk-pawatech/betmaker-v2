@@ -1,6 +1,7 @@
 import { COUNTRIES } from "./countries";
-import { apiRequest, queryClient } from "./queryClient";
+import { ApiError, apiRequest, queryClient } from "./queryClient";
 import { BetSlipResult, BetSlipSelection, Country } from "@/types";
+import type { BetslipDiagnostics } from "@shared/schema";
 import type { SavedBetslip } from "@/hooks/use-saved-betslips";
 
 const API_BASE = "/api";
@@ -17,11 +18,18 @@ export interface GenerateBetslipOptions {
   selectedMarkets?: string[];
 }
 
+export interface GenerateBetslipOutcome {
+  /** The betslip, or null when nothing matched the filters. */
+  result: BetSlipResult | null;
+  /** Why nothing matched, when the server could pin it down. */
+  diagnostics?: BetslipDiagnostics;
+}
+
 export async function generateBetslip(
   countryCode: string,
   targetOdds: number,
   options?: GenerateBetslipOptions,
-): Promise<BetSlipResult | null> {
+): Promise<GenerateBetslipOutcome> {
   try {
     const countries = COUNTRIES as Country[];
 
@@ -51,15 +59,16 @@ export async function generateBetslip(
       },
     );
 
-    return await response.json();
+    return { result: await response.json() };
   } catch (error) {
     // The backend returns 404 "No suitable betslip found for the target odds"
     // when the algorithm can't hit the target. That's a valid "no match"
-    // outcome, not a failure — return null so the caller shows the no-match
-    // state (with "try other odds") instead of a generic error.
-    // (apiRequest formats errors as `${status}: ${text}`, see queryClient.ts.)
-    if (error instanceof Error && error.message.startsWith("404")) {
-      return null;
+    // outcome, not a failure — return a null result so the caller shows the
+    // no-match state instead of a generic error, along with the diagnostics the
+    // server attaches so it can explain which limit was hit.
+    if (error instanceof ApiError && error.status === 404) {
+      const body = error.json<{ diagnostics?: BetslipDiagnostics }>();
+      return { result: null, diagnostics: body?.diagnostics };
     }
     console.error("Error generating betslip:", error);
     throw error;

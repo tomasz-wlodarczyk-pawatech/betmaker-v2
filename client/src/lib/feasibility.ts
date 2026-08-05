@@ -1,4 +1,5 @@
 import { TOLERANCE, formatOdds } from "./odds";
+import type { BetslipDiagnostics } from "@shared/schema";
 
 export interface FeasibilityInput {
   targetOdds: number;
@@ -132,6 +133,60 @@ export function checkBetslipFeasibility(
     feasible: false,
     reason: `No whole number of legs lands within ±15% of ${target} at these leg odds. Widen your leg-odds range.`,
   };
+}
+
+/**
+ * Turn the server's post-hoc diagnostics into no-match copy. This complements
+ * `checkBetslipFeasibility`, which can only reason about the odds arithmetic: the
+ * cases below depend on what the *data* offers (how many matches the time range,
+ * mode and league/market filters leave, and what those can combine to), which
+ * only the server knows.
+ *
+ * Returns null for `no-combination` — the target was reachable in principle, so
+ * `NoMatchState`'s generic "try widening your filters" copy is the honest answer.
+ */
+export function describePoolInfeasibility(
+  diagnostics: BetslipDiagnostics | undefined,
+): { title: string; description: string } | null {
+  if (!diagnostics) return null;
+
+  const legs = diagnostics.availableLegs;
+  const matches = `${legs} ${legs === 1 ? "match" : "matches"}`;
+
+  switch (diagnostics.reason) {
+    case "no-selections":
+      return {
+        title: "No matches fit these filters",
+        description:
+          "Nothing is available for this combination of mode, time range and leagues/markets. Widen the time range or clear some leagues, markets and leg-odds limits.",
+      };
+
+    case "not-enough-events":
+      return {
+        title: "Not enough matches for that many legs",
+        description: `These filters leave only ${matches} to pick from, but you asked for at least ${diagnostics.requiredLegs} legs. Lower Min Legs or widen the time range.`,
+      };
+
+    case "target-too-high":
+      return {
+        title: "Target odds out of reach",
+        description: `Only ${matches} fit these filters, and the highest total they can combine to is ${formatOdds(diagnostics.maxReachableOdds ?? 0)}. Lower your target odds or widen the time range.`,
+      };
+
+    case "target-too-low": {
+      const lowest = formatOdds(diagnostics.minReachableOdds ?? 0);
+      return {
+        title: "Target odds too low for these filters",
+        description:
+          (diagnostics.requiredLegs ?? 1) > 1
+            ? `The ${diagnostics.requiredLegs} cheapest legs available already multiply to ${lowest}. Raise your target odds or lower Min Legs.`
+            : `The cheapest match fitting these filters is ${lowest}, already above your target window. Raise your target odds or lower Min Leg Odds.`,
+      };
+    }
+
+    default:
+      return null;
+  }
 }
 
 export interface RandomFilterBounds {
