@@ -18,7 +18,9 @@ import { DualSliderTrack } from "./DualSliderTrack";
 import { randomiseFeasibleFilters } from "@/lib/feasibility";
 
 export const LEG_ODDS_MIN = 1.01;
-export const LEG_ODDS_MAX = 100;
+// Matches MAX_ODDS in lib/odds.ts: a one-leg slip is a legitimate betslip, so a
+// single leg has to be able to reach the highest allowed total on its own.
+export const LEG_ODDS_MAX = 1000;
 const LEGS_MIN = 1;
 const LEGS_MAX = 60;
 
