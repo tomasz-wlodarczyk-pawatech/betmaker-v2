@@ -1,4 +1,9 @@
-import { TOLERANCE, formatOdds } from "./odds";
+import {
+  RANDOM_TARGET_MAX,
+  RANDOM_TARGET_MIN,
+  TOLERANCE,
+  formatOdds,
+} from "./odds";
 import type { BetslipDiagnostics } from "@shared/schema";
 
 export interface FeasibilityInput {
@@ -133,6 +138,35 @@ export function checkBetslipFeasibility(
     feasible: false,
     reason: `No whole number of legs lands within ±15% of ${target} at these leg odds. Widen your leg-odds range.`,
   };
+}
+
+/** The filter half of a feasibility check — everything except the target. */
+export type RandomTargetFilters = Omit<FeasibilityInput, "targetOdds">;
+
+/**
+ * Whole targets in [RANDOM_TARGET_MIN, RANDOM_TARGET_MAX] that the current
+ * filters can actually reach.
+ *
+ * Random mode rolls from this list rather than the raw span, so it can never
+ * hand the generator a target the user's own filters forbid. It also lets the UI
+ * warn only when the *whole* span is a dead end — with no target on screen,
+ * checking a single value would be arbitrary.
+ *
+ * Comfortable targets are preferred; the `tight` ones are returned only when
+ * nothing else is reachable, so a workable-but-cramped filter set still rolls.
+ */
+export function feasibleRandomTargets(filters: RandomTargetFilters): number[] {
+  const comfortable: number[] = [];
+  const reachable: number[] = [];
+
+  for (let target = RANDOM_TARGET_MIN; target <= RANDOM_TARGET_MAX; target++) {
+    const check = checkBetslipFeasibility({ ...filters, targetOdds: target });
+    if (!check.feasible) continue;
+    reachable.push(target);
+    if (!check.tight) comfortable.push(target);
+  }
+
+  return comfortable.length > 0 ? comfortable : reachable;
 }
 
 /**

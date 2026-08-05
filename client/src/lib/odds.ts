@@ -4,6 +4,12 @@ export const MIN_ODDS = 2;
 export const MAX_ODDS = 1000;
 export const TOLERANCE = 0.15;
 
+// The span the Random betslip type rolls its target total odds from. Kept
+// deliberately modest: higher targets need long accumulators that the real
+// selection pool rarely supports, so rolling them would mostly return no match.
+export const RANDOM_TARGET_MIN = 5;
+export const RANDOM_TARGET_MAX = 20;
+
 export const formatOdds = (n: number): string => {
   const rounded = Math.round(n);
   return Math.abs(n - rounded) < 0.005 ? String(rounded) : n.toFixed(2);
