@@ -349,6 +349,20 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
           />
         )}
 
+        {/* Generate feedback sits *above* the button, alongside the live
+            feasibility warnings. Below it the alert lands off-screen — the user
+            taps Generate and it reads as if nothing happened until they scroll. */}
+        {error && feasibility.feasible && (
+          <ErrorState
+            message="Unable to generate betslip. Please try again later."
+            onRetry={handleRetry}
+          />
+        )}
+
+        {noMatchFound && feasibility.feasible && !feasibility.tight && (
+          <NoMatchState {...(poolReason ?? {})} />
+        )}
+
         <Button
           title="GENERATE SELECTIONS"
           variant="primary"
@@ -364,17 +378,6 @@ const Home = memo(function Home({ brandIdentifier }: HomeProps) {
             progress={processingProgress}
             message="Generating Selections"
           />
-        )}
-
-        {error && feasibility.feasible && (
-          <ErrorState
-            message="Unable to generate betslip. Please try again later."
-            onRetry={handleRetry}
-          />
-        )}
-
-        {noMatchFound && feasibility.feasible && !feasibility.tight && (
-          <NoMatchState {...(poolReason ?? {})} />
         )}
 
         {betslipResult && (
