@@ -3,6 +3,11 @@ import { IconButton, Input, Tabs } from "@aliengain/components";
 import { IconChevronLeft, IconChevronRight } from "@aliengain/icons";
 import { DualSliderTrack } from "./DualSliderTrack";
 import { MIN_ODDS, MAX_ODDS, formatOdds, computeRange } from "@/lib/odds";
+import { createOddsScale } from "@/lib/oddsScale";
+
+// The native range input works in whole steps, so it drives track *position*
+// (0…SLIDER_STEPS) and the odds scale turns that into the value.
+const SLIDER_STEPS = 1000;
 
 interface OddsInputProps {
   targetOdds: number;
@@ -31,6 +36,10 @@ const OddsInput = memo(function OddsInput({
     return { min, max };
   }, [targetOdds]);
 
+  // Most targets sit in the low end of 2–1000, which a linear track squeezes into
+  // a couple of percent of the width — see createOddsScale.
+  const oddsScale = useMemo(() => createOddsScale(MIN_ODDS, MAX_ODDS), []);
+
   const broadcastOdds = useCallback((value: number) => {
     window.parent.postMessage(
       { type: "betslip_generator_odds_change", odds: value },
@@ -49,9 +58,11 @@ const OddsInput = memo(function OddsInput({
 
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setTargetOdds(Number(e.target.value));
+      setTargetOdds(
+        oddsScale.fromPosition(Number(e.target.value) / SLIDER_STEPS),
+      );
     },
-    [setTargetOdds],
+    [setTargetOdds, oddsScale],
   );
 
   const decreaseOdds = useCallback(
@@ -126,8 +137,10 @@ const OddsInput = memo(function OddsInput({
   );
 
   const inputValue = inputDraft ?? formatOdds(targetOdds);
-  const sliderPercent =
-    ((targetOdds - MIN_ODDS) / (MAX_ODDS - MIN_ODDS)) * 100;
+  const sliderPosition = Math.round(
+    oddsScale.toPosition(targetOdds) * SLIDER_STEPS,
+  );
+  const sliderPercent = (sliderPosition / SLIDER_STEPS) * 100;
   const sliderBackground = `linear-gradient(to right, var(--colors-background-brand-default) 0%, var(--colors-background-brand-default) ${sliderPercent}%, var(--colors-background-tertiary) ${sliderPercent}%, var(--colors-background-tertiary) 100%)`;
 
   return (
@@ -273,13 +286,14 @@ const OddsInput = memo(function OddsInput({
           <input
             type="range"
             className="odds-range"
-            min={MIN_ODDS}
-            max={MAX_ODDS}
-            step={0.01}
-            value={targetOdds}
+            min={0}
+            max={SLIDER_STEPS}
+            step={1}
+            value={sliderPosition}
             onChange={handleSliderChange}
             disabled={disabled}
             aria-label="Target odds slider"
+            aria-valuetext={formatOdds(targetOdds)}
             style={{ background: sliderBackground }}
           />
         ) : (
@@ -290,6 +304,7 @@ const OddsInput = memo(function OddsInput({
             value={rangeOdds}
             onChange={setRangeOdds}
             label="Target odds range"
+            scale={oddsScale}
           />
         )}
       </div>

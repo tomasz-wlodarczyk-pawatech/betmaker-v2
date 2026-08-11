@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { createLinearScale, type SliderScale } from "@/lib/oddsScale";
 
 interface DualSliderTrackProps {
   min: number;
@@ -7,6 +8,12 @@ interface DualSliderTrackProps {
   value: [number, number];
   onChange: (next: [number, number]) => void;
   label: string;
+  /**
+   * Position mapping for the track. Defaults to an even spread across
+   * [min, max]; pass a warped one (e.g. `createOddsScale`) when a linear track
+   * would squash the interesting values into a few pixels.
+   */
+  scale?: SliderScale;
 }
 
 export function DualSliderTrack({
@@ -16,6 +23,7 @@ export function DualSliderTrack({
   value,
   onChange,
   label,
+  scale: scaleProp,
 }: DualSliderTrackProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const draggingRef = useRef<"min" | "max" | null>(null);
@@ -23,20 +31,12 @@ export function DualSliderTrack({
   const onChangeRef = useRef(onChange);
   valueRef.current = value;
   onChangeRef.current = onChange;
-  const range = max - min;
-  const toPercent = (v: number) => ((v - min) / range) * 100;
-  const startPercent = toPercent(value[0]);
-  const endPercent = toPercent(value[1]);
-
-  const snap = useCallback(
-    (raw: number) => {
-      const stepped = Math.round((raw - min) / step) * step + min;
-      const decimals = step < 1 ? 1 : 0;
-      const factor = Math.pow(10, decimals);
-      return Math.round(stepped * factor) / factor;
-    },
-    [min, step],
+  const scale = useMemo(
+    () => scaleProp ?? createLinearScale(min, max, step),
+    [scaleProp, min, max, step],
   );
+  const startPercent = scale.toPosition(value[0]) * 100;
+  const endPercent = scale.toPosition(value[1]) * 100;
 
   const valueFromClientX = useCallback(
     (clientX: number) => {
@@ -44,10 +44,9 @@ export function DualSliderTrack({
       if (!node) return min;
       const rect = node.getBoundingClientRect();
       const ratio = (clientX - rect.left) / rect.width;
-      const clamped = Math.min(1, Math.max(0, ratio));
-      return snap(min + clamped * range);
+      return scale.fromPosition(ratio);
     },
-    [min, range, snap],
+    [min, scale],
   );
 
   useEffect(() => {

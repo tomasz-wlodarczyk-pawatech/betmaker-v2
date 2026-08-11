@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Button, Chip, Input } from "@aliengain/components";
 import {
   IconChevronDown,
@@ -15,6 +15,7 @@ import {
 import InfoTooltipButton from "./InfoTooltipButton";
 import type { InfoSection } from "./InfoModal";
 import { DualSliderTrack } from "./DualSliderTrack";
+import { createOddsScale, type SliderScale } from "@/lib/oddsScale";
 import { randomiseFeasibleFilters } from "@/lib/feasibility";
 
 export const LEG_ODDS_MIN = 1.01;
@@ -62,6 +63,14 @@ const FiltersCard = memo(function FiltersCard({
   const [open, setOpen] = useState(true);
 
   const legOddsDefault: [number, number] = [LEG_ODDS_MIN, legOddsMax];
+
+  // Leg odds are picked overwhelmingly in the 1.01–2 band, which a linear track
+  // would render as a sliver (0.1% of the width at a 1000 max). The log scale
+  // hands that band ~40–60% of the track depending on the cap.
+  const legOddsScale = useMemo(
+    () => createOddsScale(LEG_ODDS_MIN, legOddsMax),
+    [legOddsMax],
+  );
 
   const handleReset = useCallback(() => {
     onLegOddsChange([LEG_ODDS_MIN, legOddsMax]);
@@ -177,6 +186,7 @@ const FiltersCard = memo(function FiltersCard({
             value={legOdds}
             defaultValue={legOddsDefault}
             onChange={onLegOddsChange}
+            scale={legOddsScale}
             info={{
               title: "Leg Odds",
               sections: [
@@ -385,6 +395,8 @@ interface RangeFilterProps {
   defaultValue: [number, number];
   onChange: (next: [number, number]) => void;
   info: InfoConfig;
+  /** Optional non-linear track mapping; the track is evenly spread without it. */
+  scale?: SliderScale;
 }
 
 function RangeFilter({
@@ -397,6 +409,7 @@ function RangeFilter({
   defaultValue,
   onChange,
   info,
+  scale,
 }: RangeFilterProps) {
   const [minDraft, setMinDraft] = useState<string | null>(null);
   const [maxDraft, setMaxDraft] = useState<string | null>(null);
@@ -496,6 +509,7 @@ function RangeFilter({
         value={value}
         onChange={onChange}
         label={label}
+        scale={scale}
       />
     </div>
   );
