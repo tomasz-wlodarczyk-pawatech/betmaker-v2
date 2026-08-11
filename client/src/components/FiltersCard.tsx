@@ -253,10 +253,10 @@ const FiltersCard = memo(function FiltersCard({
                 {
                   title: "Favorites",
                   description:
-                    "Limits the generator to selections you have starred as favourites.",
+                    "Picks the selection with the lowest odds — the highest probability of winning — from each match's result market. The favourite is the team predicted to win, set by the odds and not chosen by you.",
                 },
               ],
-              tip: "Hot Picks is a good shortcut when you want momentum, Favorites when you trust your own shortlist.",
+              tip: "Hot Picks is a good shortcut when you want momentum, Favorites when you want the sides most likely to win.",
             }}
           />
 

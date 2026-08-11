@@ -1,4 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { Dropdown, IconButton, Toast } from "@aliengain/components";
 import { IconCopy, IconShare, IconTelegram, IconWhatsapp, IconX } from "@aliengain/icons";
@@ -7,6 +15,45 @@ interface ShareDropdownProps {
   shareText: string;
   shareUrl?: string;
   ariaLabel?: string;
+}
+
+/**
+ * Pawablox's `Dropdown.Content` is `position: absolute; top: 100%` inside the
+ * anchor and does no collision handling, so the menu can only grow downward:
+ * on a saved betslip row sitting near the bottom of the mini-app viewport it
+ * ran off the bottom edge, and in the bottom sheet an `overflow: hidden`
+ * ancestor would clip it. So we portal the content to <body> and place it with
+ * fixed coordinates measured off the trigger, flipping above when there isn't
+ * room below. Outside-click dismissal still works — pawablox's hook does DOM
+ * `contains` checks and the portalled node is a real child of <body>.
+ */
+const MENU_MIN_WIDTH = 220;
+const MENU_GAP = 4;
+const VIEWPORT_MARGIN = 8;
+const MENU_MIN_HEIGHT = 120;
+// Four items plus the content padding. Only used for the very first measure of
+// a freshly mounted menu, before its real height can be read off the DOM.
+const MENU_ESTIMATED_HEIGHT = 208;
+
+interface MenuPosition {
+  top: number | "auto";
+  bottom: number | "auto";
+  right: number;
+  maxHeight: number;
+  maxWidth: number;
+  dropUp: boolean;
+}
+
+function samePosition(a: MenuPosition | null, b: MenuPosition): boolean {
+  return (
+    a !== null &&
+    a.top === b.top &&
+    a.bottom === b.bottom &&
+    a.right === b.right &&
+    a.maxHeight === b.maxHeight &&
+    a.maxWidth === b.maxWidth &&
+    a.dropUp === b.dropUp
+  );
 }
 
 // Legacy synchronous clipboard write. Used as a fallback when the async
@@ -59,6 +106,74 @@ const ShareDropdown = memo(function ShareDropdown({
   const [open, setOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [position, setPosition] = useState<MenuPosition | null>(null);
+
+  const measure = useCallback(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    // Layout viewport, not `window.inner*`: a fixed element's offsets and
+    // `getBoundingClientRect` both resolve against the box inside the
+    // scrollbars, so using innerWidth would shift the menu by the scrollbar
+    // width wherever one is shown.
+    const doc = document.documentElement;
+    const vw = doc.clientWidth || window.innerWidth;
+    const vh = doc.clientHeight || window.innerHeight;
+    const height = contentRef.current?.offsetHeight || MENU_ESTIMATED_HEIGHT;
+
+    const spaceBelow = vh - rect.bottom - MENU_GAP - VIEWPORT_MARGIN;
+    const spaceAbove = rect.top - MENU_GAP - VIEWPORT_MARGIN;
+    // Flip only when below genuinely can't fit and above is the roomier side,
+    // so the common case keeps the familiar downward menu.
+    const dropUp = spaceBelow < height && spaceAbove > spaceBelow;
+
+    const next: MenuPosition = {
+      top: dropUp ? "auto" : rect.bottom + MENU_GAP,
+      bottom: dropUp ? vh - rect.top + MENU_GAP : "auto",
+      // Right-aligned to the trigger, clamped so a trigger near the left edge
+      // can't push the menu off-screen on the other side.
+      right: Math.min(
+        Math.max(vw - rect.right, VIEWPORT_MARGIN),
+        Math.max(vw - MENU_MIN_WIDTH - VIEWPORT_MARGIN, VIEWPORT_MARGIN),
+      ),
+      // Whatever room is left becomes the cap; the content already scrolls its
+      // own overflow, so a cramped viewport shrinks the menu instead of
+      // spilling it past the edge.
+      maxHeight: Math.max(dropUp ? spaceAbove : spaceBelow, MENU_MIN_HEIGHT),
+      maxWidth: Math.max(vw - VIEWPORT_MARGIN * 2, MENU_MIN_WIDTH),
+      dropUp,
+    };
+
+    setPosition((prev) => (samePosition(prev, next) ? prev : next));
+  }, []);
+
+  // Runs in the commit phase, so the first measure of a newly mounted menu
+  // lands before paint and the menu never flashes at the wrong spot.
+  const setContentNode = useCallback(
+    (node: HTMLDivElement | null) => {
+      contentRef.current = node;
+      if (node) measure();
+    },
+    [measure],
+  );
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    // Covers the reopen-within-150ms case, where the exit transition has kept
+    // the node mounted and the ref callback above doesn't fire again.
+    measure();
+    window.addEventListener("resize", measure);
+    // Capture phase: the trigger may live inside a scrolling bottom sheet, not
+    // just the document.
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [open, measure]);
 
   const composedText = useMemo(() => {
     if (shareUrl) return `${shareText} ${shareUrl}`;
@@ -129,7 +244,7 @@ const ShareDropdown = memo(function ShareDropdown({
   return (
     <>
       <Dropdown open={open} onOpenChange={setOpen}>
-        <Dropdown.Anchor>
+        <Dropdown.Anchor ref={anchorRef}>
           <Dropdown.Trigger>
             <IconButton
               aria-label={ariaLabel}
@@ -139,10 +254,25 @@ const ShareDropdown = memo(function ShareDropdown({
               buttonStyle="square"
             />
           </Dropdown.Trigger>
+        </Dropdown.Anchor>
+        {createPortal(
           <Dropdown.Content
+            ref={setContentNode}
             align="end"
-            minWidth={220}
-            style={{ padding: "var(--spacing-xxs, 0.25rem)" }}
+            minWidth={MENU_MIN_WIDTH}
+            style={{
+              position: "fixed",
+              top: position?.top ?? 0,
+              bottom: position?.bottom ?? "auto",
+              left: "auto",
+              right: position?.right ?? VIEWPORT_MARGIN,
+              maxWidth: position?.maxWidth,
+              maxHeight: position?.maxHeight,
+              transformOrigin: position?.dropUp ? "bottom center" : "top center",
+              // Nothing to show until the first measure lands.
+              visibility: position ? "visible" : "hidden",
+              padding: "var(--spacing-xxs, 0.25rem)",
+            }}
           >
           <Dropdown.Item
             leftIcon={<IconCopy size="sm" color="var(--colors-icon-primary)" />}
@@ -181,8 +311,9 @@ const ShareDropdown = memo(function ShareDropdown({
           >
             Twitter / X
           </Dropdown.Item>
-          </Dropdown.Content>
-        </Dropdown.Anchor>
+          </Dropdown.Content>,
+          document.body,
+        )}
       </Dropdown>
 
       {toastVisible &&
