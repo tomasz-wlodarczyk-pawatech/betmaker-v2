@@ -82,6 +82,14 @@ export const generateBookingCodeSchema = z.object({
   brandIdentifier: z.string()
 });
 
+// Public BetMaker endpoint called by the main sportsbook frontend (not this
+// miniapp). Kept deliberately minimal — the odds bounds mirror the BetMaker
+// card's MIN_ODDS/MAX_ODDS so both sides reject the same input.
+export const betMakerGenerateSchema = z.object({
+  targetOdds: z.number().min(2).max(1000),
+  brandIdentifier: z.string().min(1),
+});
+
 export const timeRangeSchema = z.enum([
   "whenever",
   "today",
@@ -155,6 +163,7 @@ export type GenerateBetslipRequest = z.infer<typeof generateBetslipSchema>;
 export type GenerateBookingCodeRequest = z.infer<
   typeof generateBookingCodeSchema
 >;
+export type BetMakerGenerateRequest = z.infer<typeof betMakerGenerateSchema>;
 export type AvailableFiltersRequest = z.infer<typeof availableFiltersSchema>;
 export type SavedBetslipsPreferenceRequest = z.infer<
   typeof savedBetslipsPreferenceSchema

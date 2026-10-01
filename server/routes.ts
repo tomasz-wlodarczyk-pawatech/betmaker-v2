@@ -6,6 +6,7 @@ import axios from "axios";
 import {
   generateBetslipSchema,
   generateBookingCodeSchema,
+  betMakerGenerateSchema,
   availableFiltersSchema,
   switchSelectionSchema,
   savedBetslipsPreferenceSchema,
@@ -128,6 +129,78 @@ function getCountryCode(req: Request): string | null {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // The BetMaker card in the main sportsbook frontend calls /api/betmaker/*
+  // cross-origin from every brand domain, so these routes answer CORS
+  // themselves. They're read-only and take no credentials, so a wildcard
+  // origin exposes nothing a plain curl couldn't already fetch. Helmet's
+  // default same-origin CORP is relaxed for the same reason.
+  app.use("/api/betmaker", (req, res, next) => {
+    res.set({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    });
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+
+  // BetMaker (BP-45192): build a betslip close to `targetOdds` for the main
+  // sportsbook frontend. Returns the numeric selection IDs so the frontend can
+  // load them straight into its own betslip (loadExternalSelectionsThunk) with
+  // live prices, rather than trusting the odds snapshot from here.
+  app.post("/api/betmaker/generate", async (req, res) => {
+    try {
+      const { targetOdds, brandIdentifier } = betMakerGenerateSchema.parse(
+        req.body,
+      );
+
+      const raw = (await getAllEvents(brandIdentifier)) as
+        | unknown[]
+        | { status?: string; data?: unknown[] };
+
+      const events: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { data?: unknown[] })?.data)
+          ? ((raw as { data: unknown[] }).data as any[])
+          : [];
+
+      // The card promises picks "based on users popular bets", so build from
+      // hot selections first and only widen to every selection when the hot
+      // pool can't reach the target (e.g. very high odds on a quiet day).
+      const betslip =
+        (await generateBetslip(events, targetOdds, 0.15, {
+          selectionMode: "hot",
+        })) ??
+        (await generateBetslip(events, targetOdds, 0.15, {
+          selectionMode: "all",
+        }));
+
+      if (!betslip) {
+        return res
+          .status(404)
+          .json({ message: "No suitable betslip found for the target odds" });
+      }
+
+      return res.json({
+        totalOdds: Math.round(betslip.totalOdds * 100) / 100,
+        selectionIds: betslip.selections.map((s) => Number(s.id)),
+        selections: betslip.selections,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error generating BetMaker betslip:", error);
+      res.status(500).json({ message: "Failed to generate betslip" });
+    }
+  });
+
   // Proxy endpoint for fetching country data
 
   // Country-specific API endpoint to generate a betslip
