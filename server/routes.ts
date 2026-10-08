@@ -22,8 +22,12 @@ import {
   getCategories,
   getPreferences,
   setPreferences,
+  getCashoutableSelectionIds,
 } from "./services/pawagate";
-import { getPreprodEvents } from "./services/preprodSportsbook";
+import {
+  getPreprodEvents,
+  getPreprodCashoutableSelectionIds,
+} from "./services/preprodSportsbook";
 
 // Build the league filter list from the football categories catalogue. The
 // upstream nests competitions as `withRegions[].regions[].competitions[]`; we
@@ -153,17 +157,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // sportsbook frontend. Returns the numeric selection IDs so the frontend can
   // load them straight into its own betslip (loadExternalSelectionsThunk) with
   // live prices, rather than trusting the odds snapshot from here. Those IDs
-  // must exist in the sportsbook the calling frontend runs against, so
-  // `loadEvents` decides which environment they come from.
+  // must exist in the sportsbook the calling frontend runs against, so the
+  // `source` decides which environment the events and cashout flags come from.
   const betMakerGenerate =
-    (loadEvents: (brandIdentifier: string) => Promise<any[]>) =>
+    (source: {
+      loadEvents: (brandIdentifier: string) => Promise<any[]>;
+      loadCashoutable: (
+        brandIdentifier: string,
+        selectionIds: string[],
+      ) => Promise<Set<string>>;
+    }) =>
     async (req: Request, res: Response) => {
       try {
         const { targetOdds, brandIdentifier } = betMakerGenerateSchema.parse(
           req.body,
         );
 
-        const events = await loadEvents(brandIdentifier);
+        const events = await source.loadEvents(brandIdentifier);
 
         // The card promises picks "based on users popular bets", so build from
         // hot selections first and only widen to every selection when the hot
@@ -188,10 +198,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "No suitable betslip found for the target odds" });
         }
 
+        // The frontend shows the cashout label on the pre-bet coupon from
+        // `additionalInfo.cashoutable`. A failed lookup only loses the label,
+        // so it falls back to "not cashoutable" instead of failing the slip.
+        const cashoutable = await source
+          .loadCashoutable(
+            brandIdentifier,
+            betslip.selections.map((s) => s.id),
+          )
+          .catch((err) => {
+            console.error("Error fetching BetMaker cashout flags:", err);
+            return new Set<string>();
+          });
+
         return res.json({
           totalOdds: Math.round(betslip.totalOdds * 100) / 100,
           selectionIds: betslip.selections.map((s) => Number(s.id)),
-          selections: betslip.selections,
+          selections: betslip.selections.map((s) => ({
+            ...s,
+            additionalInfo: { cashoutable: cashoutable.has(s.id) },
+          })),
         });
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -207,23 +233,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Staging: events from the MiniApps gateway (`MINIAPP_ENV`).
   app.post(
     "/api/betmaker/generate",
-    betMakerGenerate(async (brandIdentifier) => {
-      const raw = (await getAllEvents(brandIdentifier)) as
-        | unknown[]
-        | { status?: string; data?: unknown[] };
+    betMakerGenerate({
+      loadEvents: async (brandIdentifier) => {
+        const raw = (await getAllEvents(brandIdentifier)) as
+          | unknown[]
+          | { status?: string; data?: unknown[] };
 
-      return Array.isArray(raw)
-        ? raw
-        : Array.isArray((raw as { data?: unknown[] })?.data)
-          ? ((raw as { data: unknown[] }).data as any[])
-          : [];
+        return Array.isArray(raw)
+          ? raw
+          : Array.isArray((raw as { data?: unknown[] })?.data)
+            ? ((raw as { data: unknown[] }).data as any[])
+            : [];
+      },
+      loadCashoutable: getCashoutableSelectionIds,
     }),
   );
 
   // Preprod: events straight from the preprod sportsbook.
   app.post(
     "/api/betmaker/preprod/generate",
-    betMakerGenerate(getPreprodEvents),
+    betMakerGenerate({
+      loadEvents: getPreprodEvents,
+      loadCashoutable: getPreprodCashoutableSelectionIds,
+    }),
   );
 
   // Proxy endpoint for fetching country data

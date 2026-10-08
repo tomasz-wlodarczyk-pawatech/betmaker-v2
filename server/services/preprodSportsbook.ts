@@ -1,4 +1,5 @@
 import type { Event } from "@/types";
+import { fetchCashoutableSelectionIds } from "./sportsbookPrices";
 
 // Preprod runs its own sportsbook (its own event/selection IDs) and has no
 // environment on the MiniApps gateway — any `x-miniapp-env` other than
@@ -72,4 +73,21 @@ export async function getPreprodEvents(brand: string): Promise<Event[]> {
       ),
     })),
   }));
+}
+
+// Which of these selections sit on a cashoutable market, per the preprod
+// sportsbook.
+export function getPreprodCashoutableSelectionIds(
+  brand: string,
+  selectionIds: string[],
+): Promise<Set<string>> {
+  return fetchCashoutableSelectionIds(
+    PREPROD_SPORTSBOOK_BASE_URL,
+    {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "x-pawa-brand": brand,
+    },
+    selectionIds,
+  );
 }

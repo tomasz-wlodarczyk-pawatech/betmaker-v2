@@ -1,3 +1,5 @@
+import { fetchCashoutableSelectionIds } from "./sportsbookPrices";
+
 const PAWAGATE_BASE_URL =
   process.env.PAWAGATE_BASE_URL || "https://miniapps.betpawa.com";
 const APP_ORIGIN = process.env.APP_ORIGIN || "";
@@ -136,6 +138,19 @@ export async function getAllEvents(brand: string): Promise<unknown> {
   }
 
   return response.json();
+}
+
+// Which of these selections sit on a cashoutable market. `events/all` doesn't
+// carry the flag, so it's looked up per generated slip.
+export function getCashoutableSelectionIds(
+  brand: string,
+  selectionIds: string[],
+): Promise<Set<string>> {
+  return fetchCashoutableSelectionIds(
+    PAWAGATE_BASE_URL,
+    buildHeaders(brand),
+    selectionIds,
+  );
 }
 
 // Sportsbook category id for Football. The categories endpoint is sport-scoped
