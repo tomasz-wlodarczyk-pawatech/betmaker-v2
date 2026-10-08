@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { z } from "zod";
 import axios from "axios";
@@ -23,6 +23,7 @@ import {
   getPreferences,
   setPreferences,
 } from "./services/pawagate";
+import { getPreprodEvents } from "./services/preprodSportsbook";
 
 // Build the league filter list from the football categories catalogue. The
 // upstream nests competitions as `withRegions[].regions[].competitions[]`; we
@@ -151,55 +152,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // BetMaker (BP-45192): build a betslip close to `targetOdds` for the main
   // sportsbook frontend. Returns the numeric selection IDs so the frontend can
   // load them straight into its own betslip (loadExternalSelectionsThunk) with
-  // live prices, rather than trusting the odds snapshot from here.
-  app.post("/api/betmaker/generate", async (req, res) => {
-    try {
-      const { targetOdds, brandIdentifier } = betMakerGenerateSchema.parse(
-        req.body,
-      );
+  // live prices, rather than trusting the odds snapshot from here. Those IDs
+  // must exist in the sportsbook the calling frontend runs against, so
+  // `loadEvents` decides which environment they come from.
+  const betMakerGenerate =
+    (loadEvents: (brandIdentifier: string) => Promise<any[]>) =>
+    async (req: Request, res: Response) => {
+      try {
+        const { targetOdds, brandIdentifier } = betMakerGenerateSchema.parse(
+          req.body,
+        );
 
+        const events = await loadEvents(brandIdentifier);
+
+        // The card promises picks "based on users popular bets", so build from
+        // hot selections first and only widen to every selection when the hot
+        // pool can't reach the target (e.g. very high odds on a quiet day).
+        // The generator's best-effort fallback can return a slip outside the
+        // tolerance, so a hot slip only counts if its total is in range.
+        const hot = await generateBetslip(events, targetOdds, 0.15, {
+          selectionMode: "hot",
+        });
+        const hotInRange =
+          hot !== null &&
+          Math.abs(hot.totalOdds - targetOdds) <= targetOdds * 0.15;
+        const betslip = hotInRange
+          ? hot
+          : ((await generateBetslip(events, targetOdds, 0.15, {
+              selectionMode: "all",
+            })) ?? hot);
+
+        if (!betslip) {
+          return res
+            .status(404)
+            .json({ message: "No suitable betslip found for the target odds" });
+        }
+
+        return res.json({
+          totalOdds: Math.round(betslip.totalOdds * 100) / 100,
+          selectionIds: betslip.selections.map((s) => Number(s.id)),
+          selections: betslip.selections,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res
+            .status(400)
+            .json({ message: "Invalid input", errors: error.errors });
+        }
+        console.error("Error generating BetMaker betslip:", error);
+        res.status(500).json({ message: "Failed to generate betslip" });
+      }
+    };
+
+  // Staging: events from the MiniApps gateway (`MINIAPP_ENV`).
+  app.post(
+    "/api/betmaker/generate",
+    betMakerGenerate(async (brandIdentifier) => {
       const raw = (await getAllEvents(brandIdentifier)) as
         | unknown[]
         | { status?: string; data?: unknown[] };
 
-      const events: any[] = Array.isArray(raw)
+      return Array.isArray(raw)
         ? raw
         : Array.isArray((raw as { data?: unknown[] })?.data)
           ? ((raw as { data: unknown[] }).data as any[])
           : [];
+    }),
+  );
 
-      // The card promises picks "based on users popular bets", so build from
-      // hot selections first and only widen to every selection when the hot
-      // pool can't reach the target (e.g. very high odds on a quiet day).
-      const betslip =
-        (await generateBetslip(events, targetOdds, 0.15, {
-          selectionMode: "hot",
-        })) ??
-        (await generateBetslip(events, targetOdds, 0.15, {
-          selectionMode: "all",
-        }));
-
-      if (!betslip) {
-        return res
-          .status(404)
-          .json({ message: "No suitable betslip found for the target odds" });
-      }
-
-      return res.json({
-        totalOdds: Math.round(betslip.totalOdds * 100) / 100,
-        selectionIds: betslip.selections.map((s) => Number(s.id)),
-        selections: betslip.selections,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res
-          .status(400)
-          .json({ message: "Invalid input", errors: error.errors });
-      }
-      console.error("Error generating BetMaker betslip:", error);
-      res.status(500).json({ message: "Failed to generate betslip" });
-    }
-  });
+  // Preprod: events straight from the preprod sportsbook.
+  app.post(
+    "/api/betmaker/preprod/generate",
+    betMakerGenerate(getPreprodEvents),
+  );
 
   // Proxy endpoint for fetching country data
 
