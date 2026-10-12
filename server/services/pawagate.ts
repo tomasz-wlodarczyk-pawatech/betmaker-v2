@@ -1,4 +1,7 @@
-import { fetchCashoutableSelectionIds } from "./sportsbookPrices";
+import {
+  fetchSelectionDetails,
+  type SelectionDetails,
+} from "./sportsbookPrices";
 
 const PAWAGATE_BASE_URL =
   process.env.PAWAGATE_BASE_URL || "https://miniapps.betpawa.com";
@@ -140,15 +143,20 @@ export async function getAllEvents(brand: string): Promise<unknown> {
   return response.json();
 }
 
-// Which of these selections sit on a cashoutable market. `events/all` doesn't
-// carry the flag, so it's looked up per generated slip.
-export function getCashoutableSelectionIds(
+// Cashout flag and translated names for the selections of a generated slip.
+// `events/all` carries neither (it ignores `x-pawa-language`), so they're
+// looked up per slip.
+export function getSelectionDetails(
   brand: string,
   selectionIds: string[],
-): Promise<Set<string>> {
-  return fetchCashoutableSelectionIds(
+  language?: string,
+): Promise<Map<string, SelectionDetails>> {
+  return fetchSelectionDetails(
     PAWAGATE_BASE_URL,
-    buildHeaders(brand),
+    {
+      ...buildHeaders(brand),
+      ...(language ? { "x-pawa-language": language } : {}),
+    },
     selectionIds,
   );
 }

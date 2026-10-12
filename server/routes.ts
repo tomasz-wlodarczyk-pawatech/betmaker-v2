@@ -22,12 +22,13 @@ import {
   getCategories,
   getPreferences,
   setPreferences,
-  getCashoutableSelectionIds,
+  getSelectionDetails,
 } from "./services/pawagate";
 import {
   getPreprodEvents,
-  getPreprodCashoutableSelectionIds,
+  getPreprodSelectionDetails,
 } from "./services/preprodSportsbook";
+import type { SelectionDetails } from "./services/sportsbookPrices";
 
 // Build the league filter list from the football categories catalogue. The
 // upstream nests competitions as `withRegions[].regions[].competitions[]`; we
@@ -111,6 +112,19 @@ const SUPPORTED_COUNTRIES = [
 // (`sid`) is passed to the miniapp by the App Lobby only when the user is
 // logged in; the client forwards it here so this proxy can authenticate the
 // preference calls upstream.
+// Language for BetMaker names: the body's `language`, else the frontend's usual
+// `X-Pawa-Language` header. Only plain codes ("en", "fr", "pt-BR") are passed
+// upstream; anything else falls back to the sportsbook's default.
+function getBetMakerLanguage(
+  req: Request,
+  bodyLanguage?: string,
+): string | undefined {
+  const language = bodyLanguage ?? req.get("x-pawa-language");
+  return language && /^[a-z]{2,3}([-_][a-z0-9]{2,4})?$/i.test(language)
+    ? language
+    : undefined;
+}
+
 function getBearerToken(req: Request): string | null {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) return null;
@@ -143,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.set({
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, X-Pawa-Language",
       "Access-Control-Max-Age": "86400",
       "Cross-Origin-Resource-Policy": "cross-origin",
     });
@@ -158,20 +172,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // load them straight into its own betslip (loadExternalSelectionsThunk) with
   // live prices, rather than trusting the odds snapshot from here. Those IDs
   // must exist in the sportsbook the calling frontend runs against, so the
-  // `source` decides which environment the events and cashout flags come from.
+  // `source` decides which environment the events and selection details
+  // (cashout flag, translated names) come from.
   const betMakerGenerate =
     (source: {
       loadEvents: (brandIdentifier: string) => Promise<any[]>;
-      loadCashoutable: (
+      loadSelectionDetails: (
         brandIdentifier: string,
         selectionIds: string[],
-      ) => Promise<Set<string>>;
+        language?: string,
+      ) => Promise<Map<string, SelectionDetails>>;
     }) =>
     async (req: Request, res: Response) => {
       try {
-        const { targetOdds, brandIdentifier } = betMakerGenerateSchema.parse(
-          req.body,
-        );
+        const { targetOdds, brandIdentifier, language } =
+          betMakerGenerateSchema.parse(req.body);
 
         const events = await source.loadEvents(brandIdentifier);
 
@@ -199,25 +214,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // The frontend shows the cashout label on the pre-bet coupon from
-        // `additionalInfo.cashoutable`. A failed lookup only loses the label,
-        // so it falls back to "not cashoutable" instead of failing the slip.
-        const cashoutable = await source
-          .loadCashoutable(
+        // `additionalInfo.cashoutable`, and market/selection names in the
+        // user's language. A failed lookup only loses those, so it falls back
+        // to "not cashoutable" and the feed's English names instead of
+        // failing the slip.
+        const details = await source
+          .loadSelectionDetails(
             brandIdentifier,
             betslip.selections.map((s) => s.id),
+            getBetMakerLanguage(req, language),
           )
           .catch((err) => {
-            console.error("Error fetching BetMaker cashout flags:", err);
-            return new Set<string>();
+            console.error("Error fetching BetMaker selection details:", err);
+            return new Map<string, SelectionDetails>();
           });
 
         return res.json({
           totalOdds: Math.round(betslip.totalOdds * 100) / 100,
           selectionIds: betslip.selections.map((s) => Number(s.id)),
-          selections: betslip.selections.map((s) => ({
-            ...s,
-            additionalInfo: { cashoutable: cashoutable.has(s.id) },
-          })),
+          selections: betslip.selections.map((s) => {
+            const detail = details.get(s.id);
+            return {
+              ...s,
+              marketName: detail?.marketName ?? s.marketName,
+              selectionName: detail?.selectionName ?? s.selectionName,
+              additionalInfo: { cashoutable: detail?.cashoutable ?? false },
+            };
+          }),
         });
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -245,7 +268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? ((raw as { data: unknown[] }).data as any[])
             : [];
       },
-      loadCashoutable: getCashoutableSelectionIds,
+      loadSelectionDetails: getSelectionDetails,
     }),
   );
 
@@ -254,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/betmaker/preprod/generate",
     betMakerGenerate({
       loadEvents: getPreprodEvents,
-      loadCashoutable: getPreprodCashoutableSelectionIds,
+      loadSelectionDetails: getPreprodSelectionDetails,
     }),
   );
 

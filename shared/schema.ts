@@ -88,6 +88,9 @@ export const generateBookingCodeSchema = z.object({
 export const betMakerGenerateSchema = z.object({
   targetOdds: z.number().min(2).max(1000),
   brandIdentifier: z.string().min(1),
+  // Language code for market/selection names (e.g. "en", "fr", "sw"). Also
+  // accepted as the `X-Pawa-Language` header; defaults to the brand's own.
+  language: z.string().optional(),
 });
 
 export const timeRangeSchema = z.enum([
